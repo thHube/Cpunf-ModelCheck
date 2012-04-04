@@ -1,0 +1,22 @@
+digraph PetriNet {
+// Places
+p6 [shape=circle label="c6 (s1')"];
+p3 [shape=circle label="c3 (s1)"];
+p5 [shape=circle label="c5 (s')"];
+p1 [shape=circle label="c1 (s0)"];
+p4 [shape=circle label="c4 (s0')"];
+p2 [shape=circle label="c2 (s)"];
+// Transitions
+t3 [shape=box label="e3 (t)"];
+t4 [shape=box label="e4 (t1)"];
+t2 [shape=box label="e2 (t0)"];
+// Edges
+p3 -> t4;
+p1 -> t2;
+p2 -> t3;
+t3 -> p5;
+t4 -> p6;
+p2 -> t4 [dir=none];
+t2 -> p4;
+p2 -> t2 [dir=none];
+}

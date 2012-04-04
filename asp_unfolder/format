@@ -1,0 +1,67 @@
+#!/usr/bin/perl
+
+# si aspetta l'input sullo std input, un predicato per linea, dunque
+# l'uso tipico e'
+#      asperix file.aspx | tr ' ' '\n' | format.pl
+# 
+# Assume che il file asp stampi solo almeno i predicati cond e event
+# ovvero che siano specificato
+#  # show event/1.
+#  # show cond/1.
+
+
+open (FILE, "<", "$ARGV[0]");
+
+# recupera il file
+my @fileCont = (<STDIN>);
+
+
+my @conditions;
+
+$cont=0;
+
+
+print "********* CONDITIONS **************\n";
+
+foreach $cond (@fileCont) {
+    chomp($cond);
+    if ($cond =~ m/cond.*/) {
+	$cond =~ s/cond\((.*)\)$/$1/;
+	$newCond=$cond;
+	$text= quotemeta($cond);
+	foreach (@fileCont) {
+	    s/$text/$cont/g;
+	};
+	foreach (@Conditions) {
+	    s/$text/$cont/g;
+	};
+	$Conditions[$cont] = $newCond;
+	$cont++;
+    };
+};
+
+
+for ($cont=0; $cont <= $#Conditions; $cont++) {
+    print "$cont = $Conditions[$cont]\n";
+};
+
+
+print "********* EVENTS **************\n";
+
+foreach $event (@fileCont) {
+    chomp($event);
+    if ($event =~ m/event.*/) {
+	$event =~ s/event\((.*)\)$/$1/;
+	print "$event\n";
+    }
+}
+
+print "********* OTHER **************\n";
+
+foreach $line (@fileCont) {
+    chomp($line);
+    if (! (($line =~ m/line.*/) || ($line =~ m/cond.*/))){
+	print "$line\n";
+    }
+}
+
