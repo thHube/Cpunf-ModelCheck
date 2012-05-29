@@ -16,14 +16,14 @@
  */
 package it.unipd.math.atomic.test
 
-import it.math.unipd.atomic.Parser
-import it.math.unipd.atomic.Scanner
-import it.math.unipd.atomic.ParseTreeBuilder
+import it.unipd.math.atomic.Parser
+import it.unipd.math.atomic.Scanner
+import it.unipd.math.atomic.ParseTreeBuilder
 
 object ParserTest {
   
   def main(args:Array[String]) {
-    val files = List("simple.atom", "race.atom")
+    val files = List("simple.atom", "race.atom", "dining.atom")
     for (file <- files) {
     	val parseTreeBuilder = new ParseTreeBuilder("samples/" + file)
     	val root = parseTreeBuilder.getTree
