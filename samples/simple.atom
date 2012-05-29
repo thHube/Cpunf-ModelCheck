@@ -1,0 +1,12 @@
+{
+  x := 3;
+  y := 2;
+  
+  while (x < 1) do 
+  {
+    x := x - 1;
+    x := 1;
+  };
+  
+  if (y = x) then y := 9 else y := 2;
+}
