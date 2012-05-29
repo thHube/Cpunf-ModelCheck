@@ -1,0 +1,26 @@
+# ------------------------------------------------------------------------------
+# brief:  Simple dining philofers' problem sample with two philosofers. 
+# author: Alberto Franco
+# ------------------------------------------------------------------------------
+{
+	x := 0;
+	y := 0;
+	
+	# -- Philosofer one
+	asynch
+		while (1) do 
+			atomic {
+				x := x + 1;
+				y := y + 1; 
+			};
+	
+	# -- Philosofer two
+	asynch 
+		while (1) do 
+			atomic {
+				x := 0;
+				y := 0;
+			};
+	
+	
+}
