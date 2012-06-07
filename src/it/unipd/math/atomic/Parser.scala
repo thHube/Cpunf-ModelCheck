@@ -41,8 +41,8 @@ class Parser(tokens:List[Token]) {
   }
   
   // -- General statement production 
-  private def stmt():ProgramNode = { 
-    var s = if_stmt() 
+  private def stmt():ProgramNode with Reduct = { 
+    var s:ProgramNode with Reduct = if_stmt() 
     if (s == null) s = while_stmt() 
     if (s == null) s = asynch_stmt() 
     if (s == null) s = atomic_stmt() 
@@ -54,7 +54,7 @@ class Parser(tokens:List[Token]) {
   }
   
   // -- If production parsing
-  private def if_stmt():ProgramNode = list match { 
+  private def if_stmt():ProgramNode with Reduct = list match { 
     case Keyword("if")::rest => {
       list = rest
       val e = expr()
@@ -81,7 +81,7 @@ class Parser(tokens:List[Token]) {
   }
     
   // -- While statment production parsing 
-  private def while_stmt():ProgramNode = list match {
+  private def while_stmt():WhileNode = list match {
     case Keyword("while")::rest => {
       list = rest
       val e = expr()
@@ -99,17 +99,17 @@ class Parser(tokens:List[Token]) {
   }
   
   // -- Asynch thread spawn production parsing
-  private def asynch_stmt():ProgramNode = list match {
+  private def asynch_stmt():AsynchNode = list match {
     case Keyword("asynch")::rest => {
       list = rest
       val e = stmt()
-      return AsyncNode(e);
+      return AsynchNode(e);
     }
     case _ => null
   }
   
   // -- Atomic section production parsing 
-  private def atomic_stmt():ProgramNode = list match {
+  private def atomic_stmt():AtomicNode = list match {
     case Keyword("atomic")::rest => {
       list = rest
       val e = stmt()
@@ -119,7 +119,7 @@ class Parser(tokens:List[Token]) {
   }
   
   // -- Skip statement
-  private def skip_stmt():ProgramNode = list match {
+  private def skip_stmt():SkipNode  = list match {
     case Keyword("skip")::rest => {
       list = rest
       return SkipNode()
@@ -128,7 +128,7 @@ class Parser(tokens:List[Token]) {
   }
   
   // -- Statment block 
-  private def block_stmt():ProgramNode = list match {
+  private def block_stmt():BlockNode = list match {
     case UnaryOpToken("{")::rest => {
       list = rest 
       return BlockNode(stmt_list())
@@ -137,7 +137,7 @@ class Parser(tokens:List[Token]) {
   }
   
   // -- Statment list 
-  private def stmt_list():List[ProgramNode] = list match {
+  private def stmt_list():List[ProgramNode with Reduct] = list match {
     case UnaryOpToken("}")::rest => list = rest; Nil
     case rest => {
       val e = stmt()
@@ -149,7 +149,7 @@ class Parser(tokens:List[Token]) {
   }
   
   // -- Assignment statement 
-  private def assign_stmt():ProgramNode = list match {
+  private def assign_stmt():AssignNode = list match {
     case Id(id)::BinaryOpToken(":=")::rest => {
       list = rest
       return AssignNode(VarNode(id), expr)
