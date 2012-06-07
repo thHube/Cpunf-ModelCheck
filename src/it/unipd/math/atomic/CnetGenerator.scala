@@ -26,8 +26,13 @@ class CnetGenerator(val root:ProgramNode with Reduct) {
  
   private var petriFactory = new PetriFactory()
   
+  private def generate(node:ProgramNode with Reduct) {
+    generateInner(node)
+    petriFactory.addPlace(0, "end")
+  }
+  
   // -- Generate the net from the given program node 
-  private def generate(node:ProgramNode with Reduct):Unit = node match {
+  private def generateInner(node:ProgramNode with Reduct):Unit = node match {
     
     // -- Contatenation of statements  
     case BlockNode(list)          => listToNet(list)
@@ -40,7 +45,7 @@ class CnetGenerator(val root:ProgramNode with Reduct) {
         petriFactory.addPlace(node.hash, node.strid)
         petriFactory.addTransition(node.hash, condName, fvb, null)
         
-        generate(body)
+        generateInner(body)
         
         petriFactory.closeLoop(node.hash)
         petriFactory.addTransition(node.hash + 1, condName, fvb, null)
@@ -56,19 +61,19 @@ class CnetGenerator(val root:ProgramNode with Reduct) {
       // -- Generate if branch net
       petriFactory.addPlace(node.hash, node.strid)
       petriFactory.addTransition(node.hash, condName, fvb, null)
-      generate(ifb)
+      generateInner(ifb)
       
       val t = petriFactory elseBranch node.hash
       
       // -- Generate else branch net
       petriFactory.addTransition(node.hash + 1, condName, fvb, null)
-      generate(elseb)
+      generateInner(elseb)
       
       petriFactory endIf t 
     }
     
     // -- Atomic statement 
-    case AtomicNode(body) => generate(body)
+    case AtomicNode(body) => generateInner(body)
     
     // -- Asynch thread spawning 
     case AsynchNode(body) => {
@@ -79,7 +84,7 @@ class CnetGenerator(val root:ProgramNode with Reduct) {
       // -- Generate asynch thread and restore current thread to continue 
       // -- the net generation
       val t = petriFactory.asynch
-      generate(body)
+      generateInner(body)
       petriFactory continue t
     }
     
@@ -94,13 +99,12 @@ class CnetGenerator(val root:ProgramNode with Reduct) {
     case _ => error("Cannot generate c-net for the program.")
   } 
   
+  // -- Convert a list of reducts to a net. 
   private def listToNet(list:List[ProgramNode with Reduct]):Unit = list match {
-    case Nil => { 
-      petriFactory.addPlace(0, "end")
-    }  
+    case Nil => { } // Do nothing at the end of the list   
     
     case _   => {
-      generate(list.head)
+      generateInner(list.head)
       listToNet(list.tail)
     }
   }
