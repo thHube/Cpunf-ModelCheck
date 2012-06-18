@@ -1,3 +1,19 @@
+/** 
+ *  Copyright (C) 2012  Alberto Franco
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details. 
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package it.unipd.math.atomic
 
 import it.unipd.math.cpnunf._
@@ -13,6 +29,10 @@ class PetriFactory {
   private var lastTransition:Transition  = null
   private var danglingIf:Transition      = null
   private var varMap: Map[String, Place] = Map()
+  private var closePlace:Place 			 = PetriFactory.createPlace(0, "end", Nil, -1) 
+  
+  // -- add close place
+  net.places += closePlace
   
   private def getPlaceFromHash(hash:Int): Place = 
     net.places.find(p => if (p.id == hash) true; else false).getOrElse(null)
@@ -25,21 +45,21 @@ class PetriFactory {
   
   def createVariableMap(vars:Set[String]) = {
     for (v <- vars) {
-      val p = PetriFactory.createPlace(v.hashCode(), v, Nil)
+      val p = PetriFactory.createPlace(v.hashCode(), v, Nil, -1)
       varMap += v -> p
       net.places += p
     }
   }
     
   // -- Add the place to the net
-  def addPlace(hash:Int, name:String) {
+  def addPlace(hash:Int, name:String, as:Int) {
     var p:Place = null
     if (lastPlace == null)
-      p = PetriFactory.createPlace(hash, name, Nil)
+      p = PetriFactory.createPlace(hash, name, Nil, as)
 	else if (danglingIf == null) 
-	  p = PetriFactory.createPlace(hash, name, List(lastTransition))
+	  p = PetriFactory.createPlace(hash, name, List(lastTransition), as)
 	else {
-	  p = PetriFactory.createPlace(hash, name, List(lastTransition, danglingIf))
+	  p = PetriFactory.createPlace(hash, name, List(lastTransition, danglingIf), as)
 	  danglingIf = null
 	} 
 		
@@ -76,11 +96,22 @@ class PetriFactory {
   
   // -- Return the last transition
   def asynch():Transition = lastTransition
-  // -- Restore the last transition to continue with the generation
-  def continue(t:Transition) = lastTransition = t
+  
+  // -- Restore the last transition to continue with the generation, used when
+  // -- creating a new parallel flow of control. 
+  def continue(t:Transition) = {
+    close
+    lastTransition = t
+  }
+  
+  // -- Close the last transition with the closing place.  
+  def close() {
+    closePlace.addPre(lastTransition)
+    lastTransition.addPost(closePlace)
+  }
   
   // -- Add a transition to the net 
-  def addTransition(hash:Int, name:String, read:Set[String], write:String) {
+  def addTransition(hash:Int, name:String, read:Set[String], write:String, as:Int) {
     var preset:List[Place] = List(lastPlace)
     if (write != null) {
       preset ::= varMap(write) 
@@ -89,7 +120,7 @@ class PetriFactory {
     var context:List[Place] = List()
     for (v <- read) { context ::= varMap(v) }
     
-    val t = PetriFactory.createTransition(hash, name, preset, context)
+    val t = PetriFactory.createTransition(hash, name, preset, context, as)
     
     for (v <- read) { varMap(v).addRead(t) }
     
@@ -110,8 +141,9 @@ class PetriFactory {
 object PetriFactory {
   
   // -- Create a new place with the given data. 
-  def createPlace(hash:Int, name:String, preset:List[Transition]):Place = {
-    val place = new Place(hash, name, (0, 0), Map())
+  def createPlace(hash:Int, name:String, preset:List[Transition], as:Int):Place = {
+    val place = new Place(hash, name, (0, 0), Map()) with Atomic
+    place.atomicSection = as;
     for (t <- preset) {
       place.addPre(t)
       t.addPost(place)
@@ -121,8 +153,9 @@ object PetriFactory {
   
   // -- Create a transition from the given data. 
   def createTransition(hash:Int, name:String, preset:List[Place], 
-      context:List[Place]): Transition = {
-    val transition = new Transition(hash, name, (0, 0), Map())
+      context:List[Place], as:Int): Transition = {
+    val transition = new Transition(hash, name, (0, 0), Map()) with Atomic
+    transition.atomicSection = as
     for (p <- preset)  {
       transition.addPre(p)
       p.addPost(transition)

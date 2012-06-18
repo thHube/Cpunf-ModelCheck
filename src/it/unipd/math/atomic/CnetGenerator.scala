@@ -28,7 +28,7 @@ class CnetGenerator(val root:ProgramNode with Reduct) {
   
   private def generate(node:ProgramNode with Reduct) {
     generateInner(node)
-    petriFactory.addPlace(0, "end")
+    petriFactory.close 
   }
   
   // -- Generate the net from the given program node 
@@ -42,13 +42,13 @@ class CnetGenerator(val root:ProgramNode with Reduct) {
         val fvb = FreeVariables.get(cond)
         val condName = Reduct.prettyPrinter(cond)
         
-        petriFactory.addPlace(node.hash, node.strid)
-        petriFactory.addTransition(node.hash, condName, fvb, null)
+        petriFactory.addPlace(node.hash, node.strid, node.atom)
+        petriFactory.addTransition(node.hash, condName, fvb, null, node.atom)
         
         generateInner(body)
         
         petriFactory.closeLoop(node.hash)
-        petriFactory.addTransition(node.hash + 1, condName, fvb, null)
+        petriFactory.addTransition(node.hash + 1, condName, fvb, null, node.atom)
     }
     
     // -- If then else net generation  
@@ -59,14 +59,14 @@ class CnetGenerator(val root:ProgramNode with Reduct) {
       val elseName = Reduct.prettyPrinter(elseb)
       
       // -- Generate if branch net
-      petriFactory.addPlace(node.hash, node.strid)
-      petriFactory.addTransition(node.hash, condName, fvb, null)
+      petriFactory.addPlace(node.hash, node.strid, node.atom)
+      petriFactory.addTransition(node.hash, condName, fvb, null, node.atom)
       generateInner(ifb)
       
       val t = petriFactory elseBranch node.hash
       
       // -- Generate else branch net
-      petriFactory.addTransition(node.hash + 1, condName, fvb, null)
+      petriFactory.addTransition(node.hash + 1, condName, fvb, null, node.atom)
       generateInner(elseb)
       
       petriFactory endIf t 
@@ -78,8 +78,8 @@ class CnetGenerator(val root:ProgramNode with Reduct) {
     // -- Asynch thread spawning 
     case AsynchNode(body) => {
       val name = Reduct.prettyPrinter(node)
-      petriFactory.addPlace(node.hash, node.strid)
-      petriFactory.addTransition(node.hash, name, Set(), null)
+      petriFactory.addPlace(node.hash, node.strid, node.atom)
+      petriFactory.addTransition(node.hash, name, Set(), null, node.atom)
 
       // -- Generate asynch thread and restore current thread to continue 
       // -- the net generation
@@ -91,8 +91,8 @@ class CnetGenerator(val root:ProgramNode with Reduct) {
     // -- Assignment net generation 
     case AssignNode(VarNode(write), expr) => {
       val name = Reduct.prettyPrinter(node)
-      petriFactory.addPlace(node.hash, node.strid)
-      petriFactory.addTransition(node.hash, name, FreeVariables.get(expr), write)
+      petriFactory.addPlace(node.hash, node.strid, node.atom)
+      petriFactory.addTransition(node.hash, name, FreeVariables.get(expr), write, node.atom)
     }
 
     // -- Error handling 
@@ -121,8 +121,4 @@ class CnetGenerator(val root:ProgramNode with Reduct) {
   def getGeneratedNet = petriFactory.cNet 
 }
 
-// -- Companion object to track 
-object CnetGenerator {
-  
-}
 
