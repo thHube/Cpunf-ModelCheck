@@ -96,7 +96,7 @@ class CnetGenerator(val root:ProgramNode with Reduct) {
     }
 
     // -- Error handling 
-    case _ => error("Cannot generate c-net for the program.")
+    case _ => sys.error("Cannot generate c-net for the program.")
   } 
   
   // -- Convert a list of reducts to a net. 
@@ -118,7 +118,8 @@ class CnetGenerator(val root:ProgramNode with Reduct) {
   println(vars)
   petriFactory.createVariableMap(vars)
   generate(root)
-  def getGeneratedNet = petriFactory.cNet 
+  
+  def getGeneratedNet = petriFactory.cNet
 }
 
 

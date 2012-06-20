@@ -37,7 +37,7 @@ class Parser(tokens:List[Token]) {
   var list = tokens
   
   def error(msg:String):Nothing = {
-    scala.Predef.error("[line " + list.head.getLine + "] >> " + msg)
+    sys.error("[line " + list.head.getLine + "] >> " + msg)
   }
   
   // -- General statement production 

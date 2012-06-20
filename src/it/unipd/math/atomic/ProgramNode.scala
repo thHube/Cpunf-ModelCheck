@@ -17,7 +17,7 @@
 package it.unipd.math.atomic
 
 // -- Represent a generic program node.
-class ProgramNode
+abstract class ProgramNode
 
 // -- Represent a block of instructions 
 case class BlockNode(stmt:List[ProgramNode with Reduct]) extends ProgramNode with Reduct
@@ -38,7 +38,7 @@ case class AtomicNode(body:ProgramNode with Reduct) extends ProgramNode with Red
 case class AssignNode(name:VarNode, exp:ProgramNode) extends ProgramNode with Reduct 
 
 // -- Skip statement 
-case class SkipNode extends ProgramNode with Reduct
+case class SkipNode() extends ProgramNode with Reduct
 
 // -- Variable node.
 case class VarNode(name:String) extends ProgramNode 
@@ -48,8 +48,8 @@ case class LiteralNode(number:Int) extends ProgramNode
 
 // --  Operators, generic, binary and unary 
 case class Operator(name:String) extends ProgramNode 
-case class BinaryOp(override val name:String, fst:ProgramNode, snd:ProgramNode) extends Operator(name)
-case class UnaryOp(override val name:String, fst:ProgramNode) extends Operator(name)
+case class BinaryOp(/*override*/ val name:String, fst:ProgramNode, snd:ProgramNode) extends ProgramNode// Operator(name)
+case class UnaryOp(/*override*/ val name:String, fst:ProgramNode) extends ProgramNode// Operator(name)
 
 // -- Free variable singleton
 object FreeVariables {

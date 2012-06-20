@@ -18,7 +18,7 @@ package it.unipd.math.atomic.test
 
 import it.unipd.math.atomic._
 
-object ReductAbstractRunnerTest extends Application {
+object ReductAbstractRunnerTest extends App {
   val files      = List("simple.atom", "race.atom", "dining.atom")
 
   for (file <- files){

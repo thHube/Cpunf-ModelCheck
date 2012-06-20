@@ -25,6 +25,8 @@ import scala.collection.immutable.Stack
 // -----------------------------------------------------------------------------
 class Unfolder(val net: PetriNet) {
   
+    val unfolding: Unfolding = new Unfolding(net)
+  
     // -- Create an history from preset, read arcs and transitions
     def make_history(preset: Set[EnrichedCondition], readarcs: Set[EnrichedCondition], trans: Transition): History = {
         // -- Get events in preset. 
@@ -60,8 +62,8 @@ class Unfolder(val net: PetriNet) {
             val pre = h.concurrent.filter(σ => trans.preset contains σ.c.image)
             val read = h.concurrent.filter(σ => σ.isCausal && (trans.readarcs contains σ.c.image))
             if (pre.map(_.c.image) == trans.preset && read.map(_.c.image) == trans.readarcs) {
-                val preList = pre.toList.sort(_ < _)
-                val readList = read.toList.sort(_ < _)
+                val preList = pre.toList.sortWith(_ < _)
+                val readList = read.toList.sortWith(_ < _)
                 var preSet: Set[EnrichedCondition] = null
                 var readSet: Set[EnrichedCondition] = null
                 
@@ -130,7 +132,7 @@ class Unfolder(val net: PetriNet) {
     def unfold(): Unfolding = {
         // -- Initialize data 
         val pe = PriorityQueue[History]()
-        val unfolding: Unfolding = new Unfolding(net)
+        
         // -- Update possible extensions
         update_pe(unfolding.root_history, pe)
         // -- Loop until it is possible to extend.

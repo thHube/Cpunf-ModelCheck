@@ -17,11 +17,11 @@
 package it.unipd.math.atomic
 
 // -----------------------------------------------------------------------------
-// -- 
+// -- Perform an abstract run on the given program node and augment parse tree
+// -- with its reduct.
 // -----------------------------------------------------------------------------
 class ReductAbstractRunner {
   
-  // TODO implement this
   private def runStmtList(list:List[ProgramNode with Reduct], queue:String, as:Int):List[Reduct] = list match {
     case fst::rest => {
       val nameRest   = Reduct.prettyPrinter(BlockNode(rest)) + queue  
@@ -35,7 +35,7 @@ class ReductAbstractRunner {
   // -- Perform an abstract run over the given program node
   def run(node:ProgramNode, queue:String = "", as:Int = -1):Reduct = {
     val name = Reduct.prettyPrinter(node) + queue
-    val hash = Math abs name.hashCode
+    val hash = scala.math.abs(name.hashCode)
     node match {
       
       case BlockNode(list) => {
@@ -79,7 +79,9 @@ class ReductAbstractRunner {
       }
       
       case AtomicNode(body) => {
-        // TODO check for nested atomic sections
+        
+        if (as != -1) sys.error("Could not nest atomic sections")
+          
         val atomicId = getNextAtomicSection
         val newBody = run(body, queue, atomicId)
         val reduct  = new AtomicNode(newBody) with Reduct
@@ -169,7 +171,7 @@ object Reduct {
     case LiteralNode(i) => i.toString
     
     // -- Default case
-    case _ => error("There were an error while printing the program")   
+    case _ => sys.error("There were an error while printing the program")   
   }
   
   // -- Prints in a readable way an abstract run from a reduct. 

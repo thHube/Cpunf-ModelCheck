@@ -212,7 +212,7 @@ class History(var event: Event, val consumed: Set[EnrichedCondition], val read: 
     val id = History.get_next_id
     
     // -- Calculate history height
-    val height: Int = (consumed ++ read).map(_.h.height).reduceOption(Math.max(_, _)).getOrElse(-1) + 1
+    val height: Int = (consumed ++ read).map(_.h.height).reduceOption(scala.math.max(_, _)).getOrElse(-1) + 1
 
     // -- Calculate the set of concurrent places and subsumed
     val (concurrent: Set[EnrichedCondition], subsumed: Set[EnrichedCondition]) = {
@@ -372,6 +372,7 @@ class Parikh() {
 
 // -----------------------------------------------------------------------------
 // -- class Unfolding, represent an unfolded net.
+// -- TODO: extends this? 
 // -----------------------------------------------------------------------------
 class Unfolding(net: PetriNet) extends Net[Condition, Event] {
     

@@ -28,14 +28,19 @@ class PetriFactory {
   private var lastPlace:Place            = null
   private var lastTransition:Transition  = null
   private var danglingIf:Transition      = null
+  private var initialMark:Boolean        = true
   private var varMap: Map[String, Place] = Map()
-  private var closePlace:Place 			 = PetriFactory.createPlace(0, "end", Nil, -1) 
+  private var closePlace:Place 			 = PetriFactory.createPlace(0, "end", Nil, -1, false) 
   
   // -- add close place
   net.places += closePlace
   
   private def getPlaceFromHash(hash:Int): Place = 
-    net.places.find(p => if (p.id == hash) true; else false).getOrElse(null)
+    net.places.find(p => p match {
+      case p:Place with Atomic if (p.hash == hash) => true
+      case _=> false
+    }).getOrElse(null)
+    
   
   // -- Returns the net created 
   def cNet = net
@@ -45,7 +50,7 @@ class PetriFactory {
   
   def createVariableMap(vars:Set[String]) = {
     for (v <- vars) {
-      val p = PetriFactory.createPlace(v.hashCode(), v, Nil, -1)
+      val p = PetriFactory.createPlace(v.hashCode(), v, Nil, -1, true)
       varMap += v -> p
       net.places += p
     }
@@ -55,17 +60,22 @@ class PetriFactory {
   def addPlace(hash:Int, name:String, as:Int) {
     var p:Place = null
     if (lastPlace == null)
-      p = PetriFactory.createPlace(hash, name, Nil, as)
+      p = PetriFactory.createPlace(hash, name, Nil, as, initialMark)
 	else if (danglingIf == null) 
-	  p = PetriFactory.createPlace(hash, name, List(lastTransition), as)
+	  p = PetriFactory.createPlace(hash, name, List(lastTransition), as, initialMark)
 	else {
-	  p = PetriFactory.createPlace(hash, name, List(lastTransition, danglingIf), as)
+	  p = PetriFactory.createPlace(hash, name, List(lastTransition, danglingIf), as, initialMark)
 	  danglingIf = null
 	} 
 		
     // -- Add the newly created place. 
     net.places += p
     lastPlace = p
+    // -- Generate initial marking 
+    if (initialMark) {
+      initialMark = false;
+      net.m0 += p
+    }
   }
  
   // -- Close a loop from the last transition given to the given place.
@@ -78,7 +88,7 @@ class PetriFactory {
       p.addPre(lastTransition)
       lastTransition.addPost(p)
     } else {
-      error("Could not close loop!")
+      sys.error("Could not close loop!")
     }    
   }
   
@@ -86,7 +96,7 @@ class PetriFactory {
   def elseBranch(hash:Int):Transition = {
 	  val p = getPlaceFromHash(hash)
 	  if (p != null) lastPlace = p
-	  else error("Could not build else brach") 
+	  else sys.error("Could not build else brach") 
 	    
 	  return lastTransition
   }
@@ -141,9 +151,19 @@ class PetriFactory {
 object PetriFactory {
   
   // -- Create a new place with the given data. 
-  def createPlace(hash:Int, name:String, preset:List[Transition], as:Int):Place = {
-    val place = new Place(hash, name, (0, 0), Map()) with Atomic
+  def createPlace(hash:Int, name:String, preset:List[Transition], as:Int, init:Boolean):Place = {
+
+    var argmap:Map[String, Any] = Map()
+    if (init) {
+      argmap += ("init-mark" -> 1)
+    }
+    
+    val place = new Place(PetriNet.place_max_id, name, (0, 0), argmap) with Atomic
     place.atomicSection = as;
+    // -- Set hash and increment id 
+    place.hash = hash
+    PetriNet.place_max_id += 1
+    
     for (t <- preset) {
       place.addPre(t)
       t.addPost(place)
@@ -154,8 +174,12 @@ object PetriFactory {
   // -- Create a transition from the given data. 
   def createTransition(hash:Int, name:String, preset:List[Place], 
       context:List[Place], as:Int): Transition = {
-    val transition = new Transition(hash, name, (0, 0), Map()) with Atomic
+    val transition = new Transition(PetriNet.trans_max_id, name, (0, 0), Map()) with Atomic
     transition.atomicSection = as
+    // -- Set hash and increment id  
+    transition.hash = hash
+    PetriNet.trans_max_id += 1
+    
     for (p <- preset)  {
       transition.addPre(p)
       p.addPost(transition)

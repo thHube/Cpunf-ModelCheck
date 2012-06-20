@@ -20,7 +20,7 @@ import it.unipd.math.atomic.Parser
 import it.unipd.math.atomic.Scanner
 import it.unipd.math.atomic.ParseTreeBuilder
 
-object ParserTest extends Application {
+object ParserTest extends App {
   val files = List("simple.atom", "race.atom", "dining.atom")
   for (file <- files) {
   	val parseTreeBuilder = new ParseTreeBuilder("samples/" + file)

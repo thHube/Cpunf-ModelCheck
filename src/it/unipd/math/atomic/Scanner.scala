@@ -38,7 +38,7 @@ case class Id(s:String) extends Token
 case class Num(i:Int) extends Token
 case class UnaryOpToken(s:String) extends Token
 case class BinaryOpToken(s:String) extends Token
-case class Separator extends Token
+case class Separator() extends Token
 
 // -----------------------------------------------------------------------------
 // -- Scanner class. Reads one by one tokens 
