@@ -5,8 +5,8 @@ import it.unipd.math.cpnunf._
 import java.io.PrintStream
 
 object UnfoldingTest extends App {
-  val files      = List("simple.atom", "race.atom", "dining.atom")
-  var outfiles   = List("simple",  "race",  "dining")
+  val files      = List("atomic_atomic.atom", "race.atom", "dining.atom")
+  var outfiles   = List("atomic",  "race",  "dining")
 
   Unfolder.log = System.out// new PrintStream("out.log")
   
@@ -14,16 +14,29 @@ object UnfoldingTest extends App {
     val parseTreeBuilder = new ParseTreeBuilder("samples/" + file)
   	val root   = parseTreeBuilder.getTree
   	val runner = new ReductAbstractRunner
-  	val net    = new CnetGenerator(runner.run(root))
+  	val net    = new CnetGenerator(runner.run(root)).getGeneratedNet
     // println(net.getGeneratedNet)
         
-    val unfold = new Unfolder(net.getGeneratedNet).unfold()
-
+    // val unfold = new Unfolder(net).unfold()
+  	val unfold = new AtomicUnfolder(net).unfold()
+  	
+  	/*
+  	for (h1 <- unfold.histories) h1 match {
+      case h:AtomicHistory => {
+        println ("Psi: " + h.psi)
+        println ("Sigma:" + h.sigma + "\n")
+        
+      }
+      
+      case _ => // -- Do nothing  
+    }
+  	*/
+  	// -- Print data 
     var currentOut = outfiles.head
     outfiles = outfiles.tail
     
-    DotWriter.write(new PrintStream(currentOut + ".dot"), net.getGeneratedNet)
-    LLWriter.write(new PrintStream(currentOut + ".ll_net"), net.getGeneratedNet, false)
+    DotWriter.write(new PrintStream(currentOut + ".unf.dot"), unfold)
+    // LLWriter.write(new PrintStream(currentOut + ".ll_net"), net, false)
     Unfolder.log.println("\n ---- \n")
   }
 }

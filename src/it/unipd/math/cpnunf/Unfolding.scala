@@ -55,6 +55,7 @@ class EnrichedCondition(val c: Condition, val h: History)
 object Color {
     val WHITE = 0
     val BLACK = 1
+    val GRAY  = 2
 }
 
 // -----------------------------------------------------------------------------
@@ -150,7 +151,7 @@ object Event {
 object History {
     
     // -- Travese given history
-    private def traverse(h: History, f: History => Unit) {
+    def traverse(h: History, f: History => Unit) {
         // -- Depth first search
         def dfs(h: History) {
             if (h.color == Color.WHITE) {

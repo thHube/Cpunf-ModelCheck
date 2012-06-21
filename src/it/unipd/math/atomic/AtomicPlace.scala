@@ -38,12 +38,15 @@ class SigmaFunction(val condition:Condition)  {
   // -- Optimized with bit sets. 
   var func:(BitSet, BitSet, BitSet, BitSet) = (BitSet(), BitSet(), BitSet(), BitSet())
   
-  // -- Get the appropriate component of the sigma function 
-  def getComponent(index:Int) = index match {
-    case 1 => func._1; case 2 => func._2
-    case 3 => func._3; case 4 => func._4
+  // -- Add to component the given atomic section 
+  def addTo(index:Int, atomic:Int) =  index match {
+    case 1 => func._1 += atomic; case 2 => func._2 += atomic
+    case 3 => func._3 += atomic; case 4 => func._4 += atomic
     case n => sys.error("Could not get index " + n)
   }
+  
+  def addToWrite() = func._4 ++= func._1 ++ func._2 ++ func._3
+  def addToRead()  = func._3 ++= func._1 ++ func._2 ++ func._4
   
   // -- Get if an elements exists in the second component of the function. 
   // -- The second component holds informations about incomplete chain with 
@@ -60,59 +63,82 @@ class SigmaFunction(val condition:Condition)  {
   // -- Return if exists in all of the function 
   def exists(as:Int) = existsInFirst(as) || existsInSecond(as)
   
+  def nonEmpty = func._1.nonEmpty || func._2.nonEmpty || 
+                 func._3.nonEmpty || func._4.nonEmpty 
+  
+                 
+                 
+  // -- Print function
+  override def toString = func.toString
+  
 }
 
 // -----------------------------------------------------------------------------
 // -- Implements the concept of cutting context associated with this one.
 // -----------------------------------------------------------------------------
-trait AtomicConfiguration extends History {
+class AtomicHistory(var evt:Event, override val consumed :Set[EnrichedCondition], 
+                    override val read :Set[EnrichedCondition]) extends History(evt, consumed, read) {
+  
+  var hist:History = null
   
   // -- Interrupted atomic secions
   var psi:BitSet = BitSet()
   
   // -- Incomplete chains of interference
-  var sigma:Map[Condition, SigmaFunction] = Map()
+  var sigma:Map[Int, SigmaFunction] = Map()
+  var images:Map[Int, Place] = Map()
   
+  // -- FIXME: This function does not do its job, why?
   def checkInterference(e:Event, as:Int):Boolean = {
     for (cond <- e.preset) {
-      if (sigma.contains(cond) && sigma(cond).exists(as)) 
-        return true
+      if (sigma.contains(cond.id) && (!sigma(cond.id).exists(as))) {
+        
+        return true 
+      } 
     }
     
     for (cond <- e.readarcs) {
-      if (sigma.contains(cond) && sigma(cond).existsInWrite(as)) 
+      if (sigma.contains(cond.id) && (!sigma(cond.id).existsInWrite(as))) 
         return true
     }
     return false
   } 
   
   // -- add an event to current configuration
-  def addEvent(e:Event with Atomic) {
+  def addEvent(e:Event) {
     var sgm:SigmaFunction = null
-    val as = e.atomicSection
+    val as = e.image match {
+      case t:Atomic => t.atomicSection
+      case _ => -1
+    }
     
     // -- If the atomic section has been broken before this point do not check
     if (psi.contains(as)) return 
     
     // -- Update psi function 
     for (cond <- e.preset if as != -1) {
-	  sgm = sigma.getOrElse(cond, null)
+	  sgm = sigma.getOrElse(cond.id, null)
+	  
 	  if (sgm != null && sgm.existsInSecond(as)) {
-	    psi += as     
+	    psi += as
 	  } 
 	}
     
     // -- Update sigma with e's post 
     for (cond <- e.postset) {
-      sgm = sigma.getOrElse(cond, new SigmaFunction(cond))
+      sgm = sigma.getOrElse(cond.id, new SigmaFunction(cond))
       if (as != -1) {
-        sgm.getComponent(1) += as
-      } else if(checkInterference(e, as)) {
-         sgm.getComponent(3) += as
+        sgm.addTo(1, as)
       }
       
-      if (!sigma.contains(cond)) {
-        sigma += (cond -> sgm)
+      if(checkInterference(e, as)) {
+         sgm.addToRead()
+      }
+      
+      if (sgm.nonEmpty && !sigma.contains(cond.id)) {
+        println("Updating sigma [postset] for " + e.name)
+        sigma  += (cond.id -> sgm)
+        images += (cond.id -> cond.image)
       }
     }
     
@@ -120,40 +146,36 @@ trait AtomicConfiguration extends History {
     for (cond <- e.readarcs) {
       sgm = new SigmaFunction(cond)
       if (as != -1) {
-        sgm.getComponent(2) += as
-      } else if (checkInterference(e, as)){
-        sgm.getComponent(4) += as
+        sgm.addTo(2, as)
       }
-      sigma += (cond -> sgm)
+      
+      if (checkInterference(e, as)){
+        sgm.addToWrite()
+      }
+      
+      if (sgm.nonEmpty) {
+    	  println("Updating sigma [context] for " + e.name)
+    	  sigma += (cond.id -> sgm)
+    	  images += (cond.id -> cond.image)
+      }
     }
   } 
   
   // -- Compare two different atomic configuration
-  def equalsTo(conf:AtomicConfiguration):Boolean = {
+  def equalsTo(conf:AtomicHistory):Boolean = {
       if (psi != conf.psi) return false
       // TODO: this is not enough right now, after we got the two place with the
       // TODO: same image we need to compare them on their sigma function.  
       for (cond <- sigma) {
-        if (!conf.sigma.exists(_._1.image == cond._1.image)) return false
+        if (!conf.images.exists(_ == images(cond._1))) return false
       }
       return true
   }
-  
-  // -- Comparison method implementation
-  def compare(that:AtomicConfiguration):Int = {
-    var psiContained:Int = 0
-    if ((psi subsetOf that.psi) && !(that.psi subsetOf psi)) psiContained = 1  
-    else if (!(psi subsetOf that.psi) && (that.psi subsetOf psi)) psiContained = -1
-    
-    // ?? 
-    
-    return psiContained
-  }
-  
+ 
   // -- Update current history with enriched condition's information 
-  def updateEnrichedCondition(ep:EnrichedCondition) {
-	ep.h match {
-	  case ah:AtomicConfiguration => {
+  def updateSets(h:History) {
+	h match {
+	  case ah:AtomicHistory => {
 	    sigma ++= ah.sigma
 	    psi   ++= ah.psi
 	  }
@@ -162,25 +184,46 @@ trait AtomicConfiguration extends History {
   }
   
   // -- Update current history with the related decorations
-  def updateHistory() {
-    event.image match {
-      case t:Transition with Atomic => {
-        val evt = new Event(t, consumed.map(_.c), read.map(_.c)) with Atomic
-        evt.atomicSection = t.atomicSection
-        for (e <- consumed) updateEnrichedCondition(e)
-        for (e <- read) updateEnrichedCondition(e)
-        addEvent(evt)
-      }
-      case _ => sys.error("Could not add events without atomic decoration")
-    }
+  def updateHistory(h:History) {
+    hist = h
+    var contribution:Set[History] = Set()
+    
+    // -- Update the marking traversing the history
+    def getMarking(ep:EnrichedCondition) = History.traverse(ep.h, x => {
+      contribution += x
+      for (ep <- consumed) 
+        contribution -= ep.h
+      for (ep <- read)	   
+        contribution -= ep.h
+    })
+    
+    // -- Traverse all enriched pairs in consumed + read histories 
+    for(ep <- consumed ++ read) getMarking(ep)
+    
+    // println(h.event.name + " Contribution: " + contribution)
+    
+    // -- Add contribution from current marking's histories
+    for (ep <- contribution) updateSets(ep)
+    
+    // -- Add maximal event from history
+    // FIXME: the error is in the creation of a new event!
+    // val newEvent =  new Event(hist.event.image, hist.event.preset) with Atomic
+    // This should fix 
+    addEvent(h.event)
+    
+    // -- TODO: Remove this 
+    debugPrint
   }
   
+  def debugPrint() = {
+    println("Psi   => " + psi)
+    print("Sigma => ")
+    for ((k, i) <- sigma) {
+      print("(" + k + " -> " + i + ") ")
+    }
+    println("")
+  }
+  
+  
 }
-
-// -----------------------------------------------------------------------------
-// -- Bridge class between history and atomic configuration
-// -----------------------------------------------------------------------------
-class AtomicHistory(e:Event, c:Set[EnrichedCondition], r:Set[EnrichedCondition]) 
-    extends History(e, c, r) with AtomicConfiguration 
-
 

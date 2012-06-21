@@ -1,10 +1,10 @@
 digraph PetriNet {
 // Places
-p3 [shape=circle label="c3 (s0')"];
-p5 [shape=circle label="c5 (s')"];
-p4 [shape=circle label="c4 (s1')"];
 p1 [shape=circle label="c1 (s0)"];
 p2 [shape=circle label="c2 (s)"];
+p4 [shape=circle label="c4 (s1')"];
+p5 [shape=circle label="c5 (s')"];
+p3 [shape=circle label="c3 (s0')"];
 // Transitions
 t4 [shape=box label="e4 (t)"];
 t3 [shape=box label="e3 (t1)"];

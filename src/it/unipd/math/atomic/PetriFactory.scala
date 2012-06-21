@@ -48,11 +48,14 @@ class PetriFactory {
   // -- Returns last place inserted 
   def getLastPlace = lastPlace
   
+  // -- Create a variable and assign it to the net.
   def createVariableMap(vars:Set[String]) = {
     for (v <- vars) {
       val p = PetriFactory.createPlace(v.hashCode(), v, Nil, -1, true)
       varMap += v -> p
+      // -- Add to net and to initial marking
       net.places += p
+      net.m0 += p
     }
   }
     
