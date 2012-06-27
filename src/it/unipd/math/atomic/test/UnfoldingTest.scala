@@ -5,7 +5,7 @@ import it.unipd.math.cpnunf._
 import java.io.PrintStream
 
 object UnfoldingTest extends App {
-  val files      = List("atomic_atomic.atom", "race.atom", "dining.atom")
+  val files      = List("atomic_atomic.atom") // , "race.atom", "dining.atom")
   var outfiles   = List("atomic",  "race",  "dining")
 
   Unfolder.log = System.out// new PrintStream("out.log")
@@ -31,12 +31,14 @@ object UnfoldingTest extends App {
       case _ => // -- Do nothing  
     }
   	*/
-  	// -- Print data 
+  	
+    // -- Print data 
     var currentOut = outfiles.head
     outfiles = outfiles.tail
     
     DotWriter.write(new PrintStream(currentOut + ".unf.dot"), unfold)
-    // LLWriter.write(new PrintStream(currentOut + ".ll_net"), net, false)
+    DotWriter.write(new PrintStream(currentOut + ".dot"), net)
+    LLWriter.write(new PrintStream(currentOut + ".ll_net"), net, false)
     Unfolder.log.println("\n ---- \n")
   }
 }

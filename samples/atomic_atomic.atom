@@ -1,0 +1,15 @@
+# -- Another atomic test
+# -- 
+{
+	atomic {
+		while (x < 3) do {
+			x := 0;
+			y := 0;	
+		};
+	};
+
+	asynch atomic {
+		x := 1;
+		y := 1;
+	};
+}

@@ -33,7 +33,7 @@ trait Atomic {
   def isAtomic(): Boolean = atomicSection != -1
 }
 
-class SigmaFunction(val condition:Condition)  {
+class SigmaFunctionOld(val condition:Condition)  {
   
   // -- Optimized with bit sets. 
   var func:(BitSet, BitSet, BitSet, BitSet) = (BitSet(), BitSet(), BitSet(), BitSet())
@@ -73,10 +73,11 @@ class SigmaFunction(val condition:Condition)  {
   
 }
 
+/*
 // -----------------------------------------------------------------------------
 // -- Implements the concept of cutting context associated with this one.
 // -----------------------------------------------------------------------------
-class AtomicHistory(var evt:Event, override val consumed :Set[EnrichedCondition], 
+class AtomicHistoryOld(var evt:Event, override val consumed :Set[EnrichedCondition], 
                     override val read :Set[EnrichedCondition]) extends History(evt, consumed, read) {
   
   var hist:History = null
@@ -85,7 +86,7 @@ class AtomicHistory(var evt:Event, override val consumed :Set[EnrichedCondition]
   var psi:BitSet = BitSet()
   
   // -- Incomplete chains of interference
-  var sigma:Map[Int, SigmaFunction] = Map()
+  var sigma:Map[Int, SigmaFunctionOld] = Map()
   var images:Map[Int, Place] = Map()
   
   // -- FIXME: This function does not do its job, why?
@@ -106,7 +107,7 @@ class AtomicHistory(var evt:Event, override val consumed :Set[EnrichedCondition]
   
   // -- add an event to current configuration
   def addEvent(e:Event) {
-    var sgm:SigmaFunction = null
+    var sgm:SigmaFunctionOld = null
     val as = e.image match {
       case t:Atomic => t.atomicSection
       case _ => -1
@@ -126,7 +127,7 @@ class AtomicHistory(var evt:Event, override val consumed :Set[EnrichedCondition]
     
     // -- Update sigma with e's post 
     for (cond <- e.postset) {
-      sgm = sigma.getOrElse(cond.id, new SigmaFunction(cond))
+      sgm = sigma.getOrElse(cond.id, new SigmaFunctionOld(cond))
       if (as != -1) {
         sgm.addTo(1, as)
       }
@@ -144,7 +145,7 @@ class AtomicHistory(var evt:Event, override val consumed :Set[EnrichedCondition]
     
     // -- Update sigma with event's context
     for (cond <- e.readarcs) {
-      sgm = new SigmaFunction(cond)
+      sgm = new SigmaFunctionOld(cond)
       if (as != -1) {
         sgm.addTo(2, as)
       }
@@ -162,7 +163,7 @@ class AtomicHistory(var evt:Event, override val consumed :Set[EnrichedCondition]
   } 
   
   // -- Compare two different atomic configuration
-  def equalsTo(conf:AtomicHistory):Boolean = {
+  def equalsTo(conf:AtomicHistoryOld):Boolean = {
       if (psi != conf.psi) return false
       // TODO: this is not enough right now, after we got the two place with the
       // TODO: same image we need to compare them on their sigma function.  
@@ -175,7 +176,7 @@ class AtomicHistory(var evt:Event, override val consumed :Set[EnrichedCondition]
   // -- Update current history with enriched condition's information 
   def updateSets(h:History) {
 	h match {
-	  case ah:AtomicHistory => {
+	  case ah:AtomicHistoryOld => {
 	    sigma ++= ah.sigma
 	    psi   ++= ah.psi
 	  }
@@ -226,4 +227,4 @@ class AtomicHistory(var evt:Event, override val consumed :Set[EnrichedCondition]
   
   
 }
-
+*/

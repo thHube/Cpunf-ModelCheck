@@ -11,15 +11,18 @@ class AtomicUnfolding(net: PetriNet) extends Unfolding(net) {
   
   // -- Test if the given history is a cutoff. 
   override def isCutoff(h: History): Boolean = {
-    super.isCutoff(h)
-    /*
+    // super.isCutoff(h)
+    
     // -- Get the set of histories that refer to the marking.
     val compare_to = markings.getOrElse(h.marking, Set())
     for (h2 <- compare_to) {
       if (h2 > h) h match {
         case ah: AtomicHistory => h2 match {
           case ah2:AtomicHistory  => {
-            return ah.equalsTo(ah2)
+            if (ah == ah2) {
+              println("??")
+              true 
+            }
           }
           case _ => {
             println("Discarding history 2")
@@ -29,7 +32,7 @@ class AtomicUnfolding(net: PetriNet) extends Unfolding(net) {
         case _ => println("Discarding history 1"); false
       }
     }
-    false*/
+    false
   }
 }
 
@@ -50,15 +53,11 @@ class AtomicUnfolder(net:PetriNet) extends Unfolder(net) {
       // -- For each event in transition preimage
       for (evt <- trans.preimage) {
           if (evt.preset == evt_pre && evt.readarcs == evt_read) {
-            val h = new AtomicHistory(evt, preset, readarcs)
-            h.updateHistory(h)
-            return h
+            return  new AtomicHistory(evt, preset, readarcs)
           }
       }
       
-      val h = new AtomicHistory(new Event(trans, evt_pre, evt_read), preset, readarcs)
-      h.updateHistory(h)
-      return h
+      return new AtomicHistory(new Event(trans, evt_pre, evt_read), preset, readarcs)
   }  
 }
 
