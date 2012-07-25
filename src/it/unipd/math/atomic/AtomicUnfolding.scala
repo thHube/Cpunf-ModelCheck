@@ -11,7 +11,7 @@ class AtomicUnfolding(net: PetriNet) extends Unfolding(net) {
   
   // -- Test if the given history is a cutoff. 
   override def isCutoff(h: History): Boolean = {
-    // super.isCutoff(h)
+    // return super.isCutoff(h)
     
     // -- Get the set of histories that refer to the marking.
     val compare_to = markings.getOrElse(h.marking, Set())
@@ -19,20 +19,20 @@ class AtomicUnfolding(net: PetriNet) extends Unfolding(net) {
       if (h2 > h) h match {
         case ah: AtomicHistory => h2 match {
           case ah2:AtomicHistory  => {
-            if (ah == ah2) {
-              println("??")
-              true 
+            if (ah2 >= ah) {
+              println("Cutoff!")
+              return true 
             }
           }
           case _ => {
             println("Discarding history 2")
-            false
+            return false
           }
         }
-        case _ => println("Discarding history 1"); false
+        case _ => println("Discarding history 1"); return false
       }
     }
-    false
+    return false
   }
 }
 

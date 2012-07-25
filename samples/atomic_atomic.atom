@@ -1,11 +1,12 @@
 # -- Another atomic test
 # -- 
 {
+	x := 0;
 	atomic {
 		while (x < 3) do {
-			x := 0;
-			y := 0;	
+			x := x + 1;	
 		};
+		y := x;
 	};
 
 	asynch atomic {

@@ -46,30 +46,40 @@ class SigmaFunction {
       
   // -- Update preset for read contiunue
   def updatePreRead(sigma:SigmaFunction, as:Int) = {
-    for (item <- sigma.readFirst ++ sigma.writeFirst ++ sigma.readContinue ++ sigma.writeContinue) {
+    for (item <- sigma.readFirst ++ sigma.writeFirst) {
       if (item != as) { readContinue += item }
     }
+    // println("Updated pre condition #3 for atomic => " + as)
   }
     
   // -- Update the context for read continue
   def updateContextRead(sigma:SigmaFunction, as:Int) = {
-    for (item <- sigma.writeContinue ++ sigma.writeFirst) {
+    for (item <- sigma.writeFirst) {
       if (item != as) { readContinue += item }
     }
+    // println("Updated context condition #3 for atomic => " + as)
   }
   
   // -- Update preset for write contiunue
   def updatePreWrite(sigma:SigmaFunction, as:Int) = {
-    for (item <- sigma.readFirst ++ sigma.writeFirst ++ sigma.readContinue ++ sigma.writeContinue) {
-      if (item != as) { writeContinue += item }
+    for (item <- sigma.readFirst ++ sigma.writeFirst) {
+      if (item != as) { 
+        writeContinue += item
+        AtomicHistory.totalPsi += item
+      }
     }
+    // println("Updated pre condition #4 for atomic => " + as)
   }
     
   // -- Update the context for write continue
   def updateContextWrite(sigma:SigmaFunction, as:Int) = {
-    for (item <- sigma.writeContinue ++ sigma.writeFirst) {
-      if (item != as) { writeContinue += item }
+    for (item <- sigma.writeFirst) {
+      if (item != as) { 
+        writeContinue += item
+        AtomicHistory.totalPsi += item
+      }
     }
+    // println("Updated context condition #4 for atomic => " + as)
   }
   
   // -- Comparison operator 
@@ -95,42 +105,48 @@ class SigmaFunction {
 class AtomicHistory(var evt:Event, override val consumed:Set[EnrichedCondition],
     override val read:Set[EnrichedCondition]) extends History(evt, consumed, read) {
   
-//  val sigma:Map[Condition, SigmaFunction] = Map()
-//  val psi  :BitSet = BitSet()
+  private val sigma:Map[Condition, SigmaFunction] = Map()
+  private val psi  :BitSet = BitSet()
 
   // -- Update the psi set with atomicity breaks
-  def updatePsi(event:Event, as:Int) {
-    for (se <- event.preset) AtomicHistory.sigma.get(se) match {
-      case Some(sgm) => if (sgm.readContinue.exists(_ == as) || 
-          sgm.writeContinue.exists(_ == as)) {
-        AtomicHistory.psi += as
+  private def updatePsi(event:Event, as:Int) {
+    if (as == -1) return 
+    
+    for (se <- event.preset) sigma.get(se) match {
+      case Some(sgm) => {
+        // println("Checking atomic section #" + as +": " + sgm)
+        if (sgm.readContinue.exists(_ == as) || sgm.writeContinue.exists(_ == as)) {
+          // println("Atomic section #" + as + " is broken")
+          psi += as
+          AtomicHistory.totalPsi += as
+        }
       }
       case None => 
     }
   }
   
   // -- Update sigma function  
-  def updateSigma(event:Event, as:Int) {
+  private def updateSigma(event:Event, as:Int) {
     // -- Update context first
     for (s <- event.readarcs) {
-      val sgm = AtomicHistory.sigma.getOrElse(s, new SigmaFunction)
+      val sgm = sigma.getOrElse(s, new SigmaFunction)
       // -- Condition 1 of context update is satisfied
       if (as != -1) {
         sgm.readFirst += as
       }
       
       // -- Condition 3 of context update is satisfied
-      for (se <- event.preset) AtomicHistory.sigma.get(se) match {
+      for (se <- event.preset) sigma.get(se) match {
         case Some(sgmFn) => sgm.updatePreRead(sgmFn, as)
         case None => // -- Skip
       }
-      for (se <- event.readarcs) AtomicHistory.sigma.get(se) match {
+      for (se <- event.readarcs) sigma.get(se) match {
         case Some(sgmFn) => sgm.updateContextRead(sgmFn, as)
         case None =>
       }
       
       // -- Update sigma set
-      AtomicHistory.sigma += (s -> sgm)
+      sigma += (s -> sgm)
     }
     
     // -- Update post set.
@@ -142,32 +158,38 @@ class AtomicHistory(var evt:Event, override val consumed:Set[EnrichedCondition],
       }
       
       // -- Condition four of update is satisfied 
-      for (se <- event.preset) AtomicHistory.sigma.get(se) match {
+      for (se <- event.preset) sigma.get(se) match {
         case Some (sgmFn) => sgm.updatePreWrite(sgmFn, as)
         case None => 
       }
-      for (se <- event.readarcs) AtomicHistory.sigma.get(se) match {
+      for (se <- event.readarcs) sigma.get(se) match {
         case Some(sgmFn) => sgm.updateContextWrite(sgmFn, as)
         case None =>
       }
       
-      AtomicHistory.sigma += (s -> sgm)
+      sigma += (s -> sgm)
     }
   }
   
   var contribution:Set[History] = Set()
     
-  // -- Update the marking traversing the history
-  def getMarking(ep:EnrichedCondition) = History.traverse(ep.h, x => {
-    contribution += x
-	for (ep <- consumed) 
-	  contribution -= ep.h
-	for (ep <- read)	   
-	  contribution -= ep.h
-  })
+  // -- Update the marking traversing the history. 
+  // -- TODO: improve this function by doing a single pass over the net. 
+  def getMarking(ep:EnrichedCondition) = {
+    // -- Add first all of the history in the contribution
+    History.traverse(ep.h, x => {
+      contribution += x
+    })
+    
+    // -- Remove all of the histories that does not matters 
+    History.traverse(ep.h, x => {
+      for (ep <- consumed) contribution -= ep.h
+      for (ep <- read)     contribution -= ep.h
+    })
+  }
   
-  /*
-  def recalcSigmaAndPsi = {
+  // -- Recalculate sigma and psi value for current history 
+  private def recalcSigmaAndPsi = {
     for (h <- contribution) h match {
         case ah:AtomicHistory => {
           sigma ++= ah.sigma
@@ -176,10 +198,10 @@ class AtomicHistory(var evt:Event, override val consumed:Set[EnrichedCondition],
         case _ => println("skippin' non atomic history")
       }
   } 
-  */
   
-  // -- 
-  def addEvent(event:Event) {
+  
+  // -- Add an event to 
+  private def addEvent(event:Event) {
     val as:Int = event.image match {
       case t:Atomic => t.atomicSection;
       case _ => -1
@@ -188,10 +210,9 @@ class AtomicHistory(var evt:Event, override val consumed:Set[EnrichedCondition],
     // -- TODO find histories that contribute to this atomic
     for (ep <- consumed ++ read) getMarking(ep)
     
-    // recalcSigmaAndPsi
+    recalcSigmaAndPsi
     updateSigma(event, as)
     updatePsi(event, as)
-    
     
     // println(contribution)
     // println(AtomicHistory.psi)
@@ -201,7 +222,9 @@ class AtomicHistory(var evt:Event, override val consumed:Set[EnrichedCondition],
   addEvent(evt)
   
   // -- Checks for equivalence 
-  def ==(that:AtomicHistory):Boolean = {
+  def >=(that:AtomicHistory):Boolean = {
+    return true
+    
     var condsThat:Set[Condition] = Set()
     var condsThis:Set[Condition] = Set()
     
@@ -220,34 +243,46 @@ class AtomicHistory(var evt:Event, override val consumed:Set[EnrichedCondition],
     })
     
     // -- There must be some thing to do the comparison on.
-    if (condsThis.isEmpty || condsThat.isEmpty) false
+    if (condsThis.isEmpty || condsThat.isEmpty) {
+      return false
+    }
     
     // -- Check one against the other  
-    for (cond <- condsThis) {
-      condsThat.find(_.image == cond.image) match {
+    for (cond <- condsThat) {
+      condsThis.find(_.image == cond.image) match {
         case None        => {
-          false
+          return false
         }
         case Some(cond2) => {
           try {
             // -- Check sigma function equality
-        	val test = AtomicHistory.sigma(cond) == AtomicHistory.sigma(cond2)
-        	if (!test) { false }
+        	val test = that.sigma(cond) == this.sigma(cond2)
+        	if (!test) { return false }
           } catch {
             // -- The test has failed, there is not 
-            case _ => false 
+            case _ => return false 
           }
         }
       }
     }
-    // println("Looks like we have a cutoff here!")
     // -- Ok, the two given histories are equal 
-    true
+    return (that.psi subsetOf this.psi)
   }
   
 }
 
 object AtomicHistory {
-  val sigma:Map[Condition, SigmaFunction] = Map()
-  val psi  :BitSet = BitSet()
+  // private val sigma:Map[Condition, SigmaFunction] = Map()
+  val totalPsi :BitSet = BitSet()
+  
+  // -- 
+  def printModelCheckingInfos() {
+    if (totalPsi.size == 0)
+      println(">> No atomic section found broken during model checking")
+    else {
+      print(">> Found atomic break in sections: ")
+      for (as <- totalPsi) { print(as + ",")}
+      print("\n")
+    }
+  }
 }

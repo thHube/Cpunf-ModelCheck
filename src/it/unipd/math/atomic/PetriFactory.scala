@@ -61,23 +61,37 @@ class PetriFactory {
     
   // -- Add the place to the net
   def addPlace(hash:Int, name:String, as:Int) {
-    var p:Place = null
-    if (lastPlace == null)
-      p = PetriFactory.createPlace(hash, name, Nil, as, initialMark)
-	else if (danglingIf == null) 
-	  p = PetriFactory.createPlace(hash, name, List(lastTransition), as, initialMark)
-	else {
-	  p = PetriFactory.createPlace(hash, name, List(lastTransition, danglingIf), as, initialMark)
-	  danglingIf = null
-	} 
+    // -- First check if there is the place 
+    var p:Place = getPlaceFromHash(hash)
+    if (p != null) {
+      if (lastPlace != null) {
+        if (danglingIf == null) {
+          p.addPre(lastTransition)
+        } else {
+          p.addPre(lastTransition) 
+          p.addPre(danglingIf)
+        }
+      }
+      lastPlace = p
+    } else {
+      // -- Place is null, go on and add the current place. 
+      if (lastPlace == null)
+        p = PetriFactory.createPlace(hash, name, Nil, as, initialMark)
+      else if (danglingIf == null) 
+	    p = PetriFactory.createPlace(hash, name, List(lastTransition), as, initialMark)
+      else {
+	    p = PetriFactory.createPlace(hash, name, List(lastTransition, danglingIf), as, initialMark)
+	    danglingIf = null
+	  } 
 		
-    // -- Add the newly created place. 
-    net.places += p
-    lastPlace = p
-    // -- Generate initial marking 
-    if (initialMark) {
-      initialMark = false;
-      net.m0 += p
+      // -- Add the newly created place. 
+      net.places += p
+      lastPlace = p
+      // -- Generate initial marking 
+      if (initialMark) {
+        initialMark = false;
+        net.m0 += p
+      }
     }
   }
  
@@ -126,20 +140,26 @@ class PetriFactory {
   // -- Add a transition to the net 
   def addTransition(hash:Int, name:String, read:Set[String], write:String, as:Int) {
     var preset:List[Place] = List(lastPlace)
-    if (write != null) {
-      preset ::= varMap(write) 
-    }
     
     var context:List[Place] = List()
     for (v <- read) { context ::= varMap(v) }
     
     val t = PetriFactory.createTransition(hash, name, preset, context, as)
     
-    for (v <- read) { varMap(v).addRead(t) }
+    // -- TODO: This should be removed
+    // -- Add all read variables 
+    for (v <- read) {
+      t.addRead(varMap(v))
+      varMap(v).addRead(t) 
+    }
     
     // -- A variable is written  
     if (write != null) {
+      t.addPre(varMap(write))
       t.addPost(varMap(write))
+      // -- TODO
+      varMap(write).addPre(t)
+      varMap(write).addPost(t)
     }
     
     lastTransition = t

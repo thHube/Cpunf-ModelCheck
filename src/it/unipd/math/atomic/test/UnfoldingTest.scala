@@ -5,8 +5,8 @@ import it.unipd.math.cpnunf._
 import java.io.PrintStream
 
 object UnfoldingTest extends App {
-  val files      = List("atomic_atomic.atom") // , "race.atom", "dining.atom")
-  var outfiles   = List("atomic",  "race",  "dining")
+  val files      = List("huge_example.atom", "atomic_atomic.atom" , "race.atom", "dining.atom")
+  var outfiles   = List("huge", "atomic",  "race",  "dining")
 
   Unfolder.log = System.out// new PrintStream("out.log")
   
@@ -20,19 +20,9 @@ object UnfoldingTest extends App {
     // val unfold = new Unfolder(net).unfold()
   	val unfold = new AtomicUnfolder(net).unfold()
   	
-  	/*
-  	for (h1 <- unfold.histories) h1 match {
-      case h:AtomicHistory => {
-        println ("Psi: " + h.psi)
-        println ("Sigma:" + h.sigma + "\n")
-        
-      }
-      
-      case _ => // -- Do nothing  
-    }
-  	*/
+  	// AtomicHistory.printSets()
   	
-    // -- Print data 
+  	// -- Print data 
     var currentOut = outfiles.head
     outfiles = outfiles.tail
     

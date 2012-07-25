@@ -74,6 +74,7 @@ class Condition(val image: Place, val pre: Event)
     pre.postset += this
 
     def compare(that: Condition) = this.id compare that.id
+    override def toString = name 
 }
 
 // -----------------------------------------------------------------------------

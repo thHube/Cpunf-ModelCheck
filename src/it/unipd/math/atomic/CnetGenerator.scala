@@ -95,8 +95,14 @@ class CnetGenerator(val root:ProgramNode with Reduct) {
       petriFactory.addTransition(node.hash, name, FreeVariables.get(expr), write, node.atom)
     }
 
+    case SkipNode() => {
+      val name = Reduct.prettyPrinter(node)
+      petriFactory.addPlace(node.hash, node.strid, node.atom)
+      petriFactory.addTransition(node.hash, name, Set(), null, node.atom)
+    }
+    
     // -- Error handling 
-    case _ => sys.error("Cannot generate c-net for the program.")
+    case a => sys.error("Cannot generate c-net for the program, " + a + " not supported")
   } 
   
   // -- Convert a list of reducts to a net. 
@@ -115,7 +121,7 @@ class CnetGenerator(val root:ProgramNode with Reduct) {
   
   // -- Return the generated petri net.
   var vars = FreeVariables.getAll(root)
-  println(vars)
+  // println(vars)
   petriFactory.createVariableMap(vars)
   generate(root)
   
