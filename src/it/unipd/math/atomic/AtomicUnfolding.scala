@@ -20,7 +20,7 @@ class AtomicUnfolding(net: PetriNet) extends Unfolding(net) {
         case ah: AtomicHistory => h2 match {
           case ah2:AtomicHistory  => {
             if (ah2 >= ah) {
-              println("Cutoff!")
+              // println("Cutoff!")
               return true 
             }
           }

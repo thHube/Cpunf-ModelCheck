@@ -173,6 +173,8 @@ class PetriFactory {
 // -----------------------------------------------------------------------------
 object PetriFactory {
   
+  var codeLine:Int = 0
+  
   // -- Create a new place with the given data. 
   def createPlace(hash:Int, name:String, preset:List[Transition], as:Int, init:Boolean):Place = {
 
@@ -191,6 +193,8 @@ object PetriFactory {
       place.addPre(t)
       t.addPost(place)
     }
+    
+    place.codeLine = codeLine
     return place
   }
   
@@ -212,6 +216,7 @@ object PetriFactory {
       p.addRead(transition)
     }
     
+    transition.codeLine = codeLine
     return transition
   }
   

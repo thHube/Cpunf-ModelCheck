@@ -118,11 +118,14 @@ class ReductAbstractRunner {
 // -- atomic section where its belong
 // -----------------------------------------------------------------------------
 trait Reduct extends ProgramNode {
-  // var node:ProgramNode
+  
   var hash:Int    = 0
   var strid:String = ""
   var atom:Int    = 0
   
+  // -- Line of the reduct in the source code. To give more expressive 
+  // -- error messages 
+  var codeLine:Int = 0
 }
 
 // -----------------------------------------------------------------------------

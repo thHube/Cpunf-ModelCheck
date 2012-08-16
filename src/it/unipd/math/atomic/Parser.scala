@@ -56,6 +56,8 @@ class Parser(tokens:List[Token]) {
   // -- If production parsing
   private def if_stmt():ProgramNode with Reduct = list match { 
     case Keyword("if")::rest => {
+      
+      val lineOfCode = list.head.getLine
       list = rest
       val e = expr()
       
@@ -68,7 +70,11 @@ class Parser(tokens:List[Token]) {
               list = rest
               
               var eb = stmt()
-              return IfNode(e, tb, eb);
+              
+              // -- added line of code count 
+              val newNode = IfNode(e, tb, eb)
+              newNode.codeLine = lineOfCode
+              return newNode
             }
             case _ => error("Missing else branch")
           }
@@ -83,14 +89,19 @@ class Parser(tokens:List[Token]) {
   // -- While statment production parsing 
   private def while_stmt():WhileNode = list match {
     case Keyword("while")::rest => {
+      val lineOfCode = list.head.getLine
       list = rest
+      
       val e = expr()
       list match {
         // -- match the rest
         case Keyword("do")::rest => {
           list = rest
           var s = stmt()
-          return WhileNode(e, s);
+          
+          val newNode = WhileNode(e, s) 
+          newNode.codeLine = lineOfCode
+          return newNode
         }
         case _ => error("Expected do keyword")
       }
@@ -101,9 +112,14 @@ class Parser(tokens:List[Token]) {
   // -- Asynch thread spawn production parsing
   private def asynch_stmt():AsynchNode = list match {
     case Keyword("asynch")::rest => {
+      val lineOfCode = list.head.getLine
+      
       list = rest
       val e = stmt()
-      return AsynchNode(e);
+      
+      val newNode = AsynchNode(e)
+      newNode.codeLine = lineOfCode
+      return newNode
     }
     case _ => null
   }
@@ -111,9 +127,14 @@ class Parser(tokens:List[Token]) {
   // -- Atomic section production parsing 
   private def atomic_stmt():AtomicNode = list match {
     case Keyword("atomic")::rest => {
+      val lineOfCode = list.head.getLine
+      
       list = rest
       val e = stmt()
-      return AtomicNode(e)
+      
+      val newNode = AtomicNode(e)
+      newNode.codeLine = lineOfCode
+      return newNode
     }
     case _ => null
   }
@@ -121,8 +142,13 @@ class Parser(tokens:List[Token]) {
   // -- Skip statement
   private def skip_stmt():SkipNode  = list match {
     case Keyword("skip")::rest => {
+      val lineOfCode = list.head.getLine
+      
       list = rest
-      return SkipNode()
+      
+      val newNode = SkipNode()
+      newNode.codeLine = lineOfCode
+      return newNode
     }
     case _ => null
   }
@@ -130,8 +156,13 @@ class Parser(tokens:List[Token]) {
   // -- Statment block 
   private def block_stmt():BlockNode = list match {
     case UnaryOpToken("{")::rest => {
-      list = rest 
-      return BlockNode(stmt_list())
+      val lineOfCode = list.head.getLine
+      
+      list = rest
+      
+      val newNode = BlockNode(stmt_list())
+      newNode.codeLine = lineOfCode 
+      return newNode
     }
     case _ => null
   }
@@ -151,8 +182,13 @@ class Parser(tokens:List[Token]) {
   // -- Assignment statement 
   private def assign_stmt():AssignNode = list match {
     case Id(id)::BinaryOpToken(":=")::rest => {
+      val lineOfCode = list.head.getLine
+      
       list = rest
-      return AssignNode(VarNode(id), expr)
+      
+      val newNode = AssignNode(VarNode(id), expr)
+      newNode.codeLine = lineOfCode
+      return newNode
     }
     
     case _ => return null

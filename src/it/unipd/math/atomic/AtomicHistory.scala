@@ -65,7 +65,7 @@ class SigmaFunction {
     for (item <- sigma.readFirst ++ sigma.writeFirst) {
       if (item != as) { 
         writeContinue += item
-        AtomicHistory.totalPsi += item
+        // AtomicHistory.totalPsi += item
       }
     }
     // println("Updated pre condition #4 for atomic => " + as)
@@ -76,7 +76,7 @@ class SigmaFunction {
     for (item <- sigma.writeFirst) {
       if (item != as) { 
         writeContinue += item
-        AtomicHistory.totalPsi += item
+        // AtomicHistory.totalPsi += item
       }
     }
     // println("Updated context condition #4 for atomic => " + as)
@@ -92,9 +92,9 @@ class SigmaFunction {
   
   // -- To string method
   override def toString = "[1r: "  + readFirst + 
-  						  ", 1w: " + writeFirst + 
-  						  ", 2r: " + readContinue + 
-  						  ", 2w: " + writeContinue + "]" 
+  	                      ", 1w: " + writeFirst + 
+  	                      ", 2r: " + readContinue + 
+  	                      ", 2w: " + writeContinue + "]" 
 }
 
 
@@ -109,16 +109,17 @@ class AtomicHistory(var evt:Event, override val consumed:Set[EnrichedCondition],
   private val psi  :BitSet = BitSet()
 
   // -- Update the psi set with atomicity breaks
-  private def updatePsi(event:Event, as:Int) {
+  private def updatePsi(event:Event, as:Int, codeLine:Int) {
     if (as == -1) return 
     
     for (se <- event.preset) sigma.get(se) match {
       case Some(sgm) => {
-        // println("Checking atomic section #" + as +": " + sgm)
-        if (sgm.readContinue.exists(_ == as) || sgm.writeContinue.exists(_ == as)) {
-          // println("Atomic section #" + as + " is broken")
+        println("Checking atomic section #" + as +": " + sgm)
+        if (sgm.readContinue.contains(as) || sgm.writeContinue.contains(as)) {
+          println("Atomic section #" + as + " is broken")
           psi += as
           AtomicHistory.totalPsi += as
+          AtomicHistory.breakCouples ::= (AtomicHistory.atomicLineMap(as), codeLine)  
         }
       }
       case None => 
@@ -202,17 +203,56 @@ class AtomicHistory(var evt:Event, override val consumed:Set[EnrichedCondition],
   
   // -- Add an event to 
   private def addEvent(event:Event) {
-    val as:Int = event.image match {
-      case t:Atomic => t.atomicSection;
-      case _ => -1
+    
+    var codeLine = 0
+    
+    // -- Support method to use in getting run-time atomic section id   
+    def getRuntimeAtomicSection(event:Event):Int = event.image match {
+      case p:Atomic => {
+        codeLine = p.codeLine
+        if (p.atomicSection != -1) {
+          var as:Int = -1
+          event.preset.foreach(c => c.image match {
+            case t:Atomic => {
+              if (t.atomicSection == p.atomicSection) {
+                for (e1 <- c.preset) e1.image match {
+                  case p1:Atomic => {
+                    if (p1.atomicSection == p.atomicSection) {
+                      p.runtimeAtomic = p1.runtimeAtomic 
+                    } else {
+                      p.runtimeAtomic = AtomicHistory.getNextRuntimeId()
+                      AtomicHistory.atomicLineMap += (p.runtimeAtomic -> p.codeLine)
+                    }
+                    as = p.runtimeAtomic
+                  }
+                  case  _ => {
+                    p.runtimeAtomic = AtomicHistory.getNextRuntimeId()
+                    as = p.runtimeAtomic
+                    AtomicHistory.atomicLineMap += (p.runtimeAtomic -> p.codeLine)
+                  }
+                }
+              } else {
+                as = -1
+              }             
+            } 
+            case _ => as -1
+          })
+          return as
+        } else {
+          return -1
+        }
+      }
+      case _ => return -1
     }
+    
+    val as:Int = getRuntimeAtomicSection(event)
     
     // -- TODO find histories that contribute to this atomic
     for (ep <- consumed ++ read) getMarking(ep)
     
     recalcSigmaAndPsi
     updateSigma(event, as)
-    updatePsi(event, as)
+    updatePsi(event, as, codeLine)
     
     // println(contribution)
     // println(AtomicHistory.psi)
@@ -274,6 +314,21 @@ class AtomicHistory(var evt:Event, override val consumed:Set[EnrichedCondition],
 object AtomicHistory {
   // private val sigma:Map[Condition, SigmaFunction] = Map()
   val totalPsi :BitSet = BitSet()
+  
+  private var runtimeAtomic:Map[Event, Int] = Map()
+  private var atomicLineMap:Map[Int, Int]   = Map()
+  private var breakCouples:List[(Int, Int)] = List()
+  
+  
+  // -- Runtime history counting
+  private var nextRuntimeAtomicId:Int = 0; 
+  
+  // -- Return the next runtime identifier
+  def getNextRuntimeId():Int = {
+    val id = nextRuntimeAtomicId
+    nextRuntimeAtomicId += 1
+    return id
+  }
   
   // -- 
   def printModelCheckingInfos() {

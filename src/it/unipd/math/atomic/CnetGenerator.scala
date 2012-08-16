@@ -42,10 +42,14 @@ class CnetGenerator(val root:ProgramNode with Reduct) {
         val fvb = FreeVariables.get(cond)
         val condName = Reduct.prettyPrinter(cond)
         
+        PetriFactory.codeLine = node.codeLine
+        
         petriFactory.addPlace(node.hash, node.strid, node.atom)
         petriFactory.addTransition(node.hash, condName, fvb, null, node.atom)
         
         generateInner(body)
+        
+        PetriFactory.codeLine = node.codeLine
         
         petriFactory.closeLoop(node.hash)
         petriFactory.addTransition(node.hash + 1, condName, fvb, null, node.atom)
@@ -58,17 +62,21 @@ class CnetGenerator(val root:ProgramNode with Reduct) {
       val ifName   = Reduct.prettyPrinter(ifb)
       val elseName = Reduct.prettyPrinter(elseb)
       
+      PetriFactory.codeLine = node.codeLine
+      
       // -- Generate if branch net
       petriFactory.addPlace(node.hash, node.strid, node.atom)
       petriFactory.addTransition(node.hash, condName, fvb, null, node.atom)
       generateInner(ifb)
       
+      PetriFactory.codeLine = node.codeLine
       val t = petriFactory elseBranch node.hash
       
       // -- Generate else branch net
       petriFactory.addTransition(node.hash + 1, condName, fvb, null, node.atom)
       generateInner(elseb)
       
+      PetriFactory.codeLine = node.codeLine
       petriFactory endIf t 
     }
     
@@ -78,6 +86,8 @@ class CnetGenerator(val root:ProgramNode with Reduct) {
     // -- Asynch thread spawning 
     case AsynchNode(body) => {
       val name = Reduct.prettyPrinter(node)
+      PetriFactory.codeLine = node.codeLine
+      
       petriFactory.addPlace(node.hash, node.strid, node.atom)
       petriFactory.addTransition(node.hash, name, Set(), null, node.atom)
 
@@ -85,18 +95,24 @@ class CnetGenerator(val root:ProgramNode with Reduct) {
       // -- the net generation
       val t = petriFactory.asynch
       generateInner(body)
+      
+      PetriFactory.codeLine = node.codeLine
       petriFactory continue t
     }
     
     // -- Assignment net generation 
     case AssignNode(VarNode(write), expr) => {
       val name = Reduct.prettyPrinter(node)
+      
+      PetriFactory.codeLine = node.codeLine
       petriFactory.addPlace(node.hash, node.strid, node.atom)
       petriFactory.addTransition(node.hash, name, FreeVariables.get(expr), write, node.atom)
     }
 
     case SkipNode() => {
       val name = Reduct.prettyPrinter(node)
+      
+      PetriFactory.codeLine = node.codeLine
       petriFactory.addPlace(node.hash, node.strid, node.atom)
       petriFactory.addTransition(node.hash, name, Set(), null, node.atom)
     }

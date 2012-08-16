@@ -26,6 +26,12 @@ trait Atomic {
   // -- Atomic section number  
   var atomicSection:Int = -1
   
+  // -- Runtime atomic section number
+  var runtimeAtomic:Int = -1
+  
+  // -- Line of code of the atomic decoration
+  var codeLine:Int = 0
+  
   // -- Hash code for each atomic place. 
   var hash:Int = 0
   
