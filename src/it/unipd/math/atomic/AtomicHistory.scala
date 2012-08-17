@@ -61,22 +61,26 @@ class SigmaFunction {
   }
   
   // -- Update preset for write contiunue
-  def updatePreWrite(sigma:SigmaFunction, as:Int) = {
+  def updatePreWrite(sigma:SigmaFunction, as:Int, codeLine:Int) = {
     for (item <- sigma.readFirst ++ sigma.writeFirst) {
       if (item != as) { 
         writeContinue += item
-        // AtomicHistory.totalPsi += item
+        
+        AtomicHistory.totalPsi += item
+        AtomicHistory.breakCouples ::= (AtomicHistory.atomicLineMap(as), codeLine) 
       }
     }
     // println("Updated pre condition #4 for atomic => " + as)
   }
     
   // -- Update the context for write continue
-  def updateContextWrite(sigma:SigmaFunction, as:Int) = {
+  def updateContextWrite(sigma:SigmaFunction, as:Int, codeLine:Int) = {
     for (item <- sigma.writeFirst) {
       if (item != as) { 
         writeContinue += item
-        // AtomicHistory.totalPsi += item
+        
+        AtomicHistory.totalPsi += item
+        AtomicHistory.breakCouples ::= (AtomicHistory.atomicLineMap(as), codeLine)
       }
     }
     // println("Updated context condition #4 for atomic => " + as)
@@ -114,7 +118,7 @@ class AtomicHistory(var evt:Event, override val consumed:Set[EnrichedCondition],
     
     for (se <- event.preset) sigma.get(se) match {
       case Some(sgm) => {
-        println("Checking atomic section #" + as +": " + sgm)
+        // println("Checking atomic section #" + as +": " + sgm)
         if (sgm.readContinue.contains(as) || sgm.writeContinue.contains(as)) {
           println("Atomic section #" + as + " is broken")
           psi += as
@@ -127,7 +131,7 @@ class AtomicHistory(var evt:Event, override val consumed:Set[EnrichedCondition],
   }
   
   // -- Update sigma function  
-  private def updateSigma(event:Event, as:Int) {
+  private def updateSigma(event:Event, as:Int, codeLine:Int) {
     // -- Update context first
     for (s <- event.readarcs) {
       val sgm = sigma.getOrElse(s, new SigmaFunction)
@@ -160,11 +164,11 @@ class AtomicHistory(var evt:Event, override val consumed:Set[EnrichedCondition],
       
       // -- Condition four of update is satisfied 
       for (se <- event.preset) sigma.get(se) match {
-        case Some (sgmFn) => sgm.updatePreWrite(sgmFn, as)
+        case Some (sgmFn) => sgm.updatePreWrite(sgmFn, as, codeLine)
         case None => 
       }
       for (se <- event.readarcs) sigma.get(se) match {
-        case Some(sgmFn) => sgm.updateContextWrite(sgmFn, as)
+        case Some(sgmFn) => sgm.updateContextWrite(sgmFn, as, codeLine)
         case None =>
       }
       
@@ -251,7 +255,7 @@ class AtomicHistory(var evt:Event, override val consumed:Set[EnrichedCondition],
     for (ep <- consumed ++ read) getMarking(ep)
     
     recalcSigmaAndPsi
-    updateSigma(event, as)
+    updateSigma(event, as, codeLine)
     updatePsi(event, as, codeLine)
     
     // println(contribution)
@@ -315,9 +319,9 @@ object AtomicHistory {
   // private val sigma:Map[Condition, SigmaFunction] = Map()
   val totalPsi :BitSet = BitSet()
   
-  private var runtimeAtomic:Map[Event, Int] = Map()
-  private var atomicLineMap:Map[Int, Int]   = Map()
-  private var breakCouples:List[(Int, Int)] = List()
+  var breakCouples:List[(Int, Int)] = List()
+  var runtimeAtomic:Map[Event, Int] = Map()
+  var atomicLineMap:Map[Int, Int]   = Map()
   
   
   // -- Runtime history counting
@@ -331,13 +335,15 @@ object AtomicHistory {
   }
   
   // -- 
-  def printModelCheckingInfos() {
+  def printModelCheckingInfos(time:Long) {
     if (totalPsi.size == 0)
       println(">> No atomic section found broken during model checking")
     else {
-      print(">> Found atomic break in sections: ")
-      for (as <- totalPsi) { print(as + ",")}
-      print("\n")
+      println(">> Found atomic break:")
+      for ((asLine, breakLine) <- breakCouples) { 
+    	  println("  [" + asLine + "] >> Interruption by code at line " + breakLine)
+      }
+      println(">> Done in " + time + "ms")
     }
   }
 }

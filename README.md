@@ -6,3 +6,11 @@
     in his master thesis. All copyrights are given in the source code. 
     See "LICENSE" file for license agreement. 
 </p>
+<p>
+To compile the source code into a jar you will need to have the scala compiler
+and ant installed. Then just type <code>ant</code> from the project root 
+directory. In the <code>dist</code> directory a jar will be built, you can 
+run that jar. 
+</p>
+
+
