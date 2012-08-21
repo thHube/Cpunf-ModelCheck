@@ -53,7 +53,7 @@ class Scanner(input:String) {
   // -- Regex used for lexical analysis
   // ---------------------------------------------------------------------------
   // -- Keywords regex
-  private val keyword = new Regex("""(while|if|then|else|skip|asynch|atomic|do)""", "keyword")
+  private val keyword = new Regex("""(while|if|then|else|skip|asynch|atomic|do|acquire|release)""", "keyword")
   
   // -- Identifier regexp 
   private val ids     = new Regex("""([a-zA-Z]\w*)""", "id")
@@ -135,7 +135,7 @@ class ParseTreeBuilder(filename:String) {
   private val parser    = new Parser(scanner.lex)
   
   // -- Parse the given file
-  def getTree():ProgramNode = {
+  def getTree():ProgramNode with Reduct = {
     try {
       val parseTree = parser.parse()
       return parseTree

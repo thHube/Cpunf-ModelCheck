@@ -166,6 +166,28 @@ class PetriFactory {
     net.transitions += t
   }
   
+  // -- Add a lock transition
+  def addLockTransition(hash:Int, name:String, lock:String, acquire:Boolean, as:Int) {
+    // -- gather preset of the new transition
+    var preset:List[Place] = List(lastPlace)
+    if (acquire) { 
+      preset ::= varMap(lock)
+      
+    }
+    val t = PetriFactory.createTransition(hash, name, preset, List(), as)
+    
+    // -- If the lock is acquire lock -> t, else t -> lock 
+    if (acquire) {
+      varMap(lock).addPost(t)
+    } else { 
+      t.addPost(varMap(lock))
+      varMap(lock).addPre(t)
+    }
+    
+    lastTransition = t
+    net.transitions += t
+  }
+  
 }
 
 // -----------------------------------------------------------------------------

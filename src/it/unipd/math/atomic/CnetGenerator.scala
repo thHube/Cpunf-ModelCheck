@@ -109,6 +109,15 @@ class CnetGenerator(val root:ProgramNode with Reduct) {
       petriFactory.addTransition(node.hash, name, FreeVariables.get(expr), write, node.atom)
     }
 
+    // -- Lock net generation
+    case LockNode(VarNode(lock), b) => {
+      val name = Reduct.prettyPrinter(node)
+      
+      PetriFactory.codeLine = node.codeLine
+      petriFactory.addPlace(node.hash, node.strid, node.atom)
+      petriFactory.addLockTransition(node.hash, node.strid, lock, b, node.atom)
+    }
+    
     case SkipNode() => {
       val name = Reduct.prettyPrinter(node)
       

@@ -40,6 +40,9 @@ case class AssignNode(name:VarNode, exp:ProgramNode) extends ProgramNode with Re
 // -- Skip statement 
 case class SkipNode() extends ProgramNode with Reduct
 
+// -- Lock node 
+case class LockNode(name:VarNode, acquire:Boolean) extends ProgramNode with Reduct
+
 // -- Variable node.
 case class VarNode(name:String) extends ProgramNode 
  
@@ -66,6 +69,7 @@ object FreeVariables {
     case AsynchNode(b)    => get(b)
     case AtomicNode(b)    => get(b)
     case AssignNode(v, e) => get(e) - v.name
+    case LockNode(v, b)   => get(v)
     case VarNode(n)       => Set(n)
     case LiteralNode(_) | SkipNode() => Set()
     case BinaryOp(_, fst, snd) => get(fst) ++ get(snd)
@@ -84,6 +88,7 @@ object FreeVariables {
     case AsynchNode(b)    => getAll(b)
     case AtomicNode(b)    => getAll(b)
     case AssignNode(v, e) => getAll(e) + v.name
+    case LockNode(v, b)   => getAll(v)
     case VarNode(n)       => Set(n)
     case LiteralNode(_) | SkipNode() => Set()
     case BinaryOp(_, fst, snd) => getAll(fst) ++ getAll(snd)

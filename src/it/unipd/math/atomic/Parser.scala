@@ -28,7 +28,8 @@ package it.unipd.math.atomic
 // atomic_stmt ::= 'atomic' stmt 
 // assign_stmt ::= ID ':=' expr
 // block       ::= '{' stmt_list '}'
-// 
+// lock        ::= 'acquire' ID | 'release' ID
+//
 // stmt_list   ::= stmt ';' (stmt_list | \epsilon)
 // expr        ::= ID | NUM | '(' expr ')' | UNA_OP expr | expr BIN_OP expr 
 // -----------------------------------------------------------------------------
@@ -49,7 +50,8 @@ class Parser(tokens:List[Token]) {
     if (s == null) s = assign_stmt()
     if (s == null) s = skip_stmt() 	
     if (s == null) s = block_stmt()
-    if (s == null) error("Could not parse stmt.")
+    if (s == null) s = lock_stmt()
+    if (s == null) error("Could not parse statement.")
     return s
   }
   
@@ -179,6 +181,32 @@ class Parser(tokens:List[Token]) {
     } 
   }
   
+  // -- Lock statement
+  private def lock_stmt():LockNode = list match {
+    case Keyword("acquire")::Id(id)::rest => {
+      val lineOfCode = list.head.getLine
+      
+      list = rest
+      
+      val newNode = LockNode(VarNode(id), true)
+      newNode.codeLine = lineOfCode
+      return newNode
+    }
+    
+    case Keyword("release")::Id(id)::rest => {
+      val lineOfCode = list.head.getLine
+      
+      list = rest
+      
+      val newNode = LockNode(VarNode(id), false)
+      newNode.codeLine = lineOfCode
+      return newNode
+    }
+    
+    case _ => return null
+    
+  }
+  
   // -- Assignment statement 
   private def assign_stmt():AssignNode = list match {
     case Id(id)::BinaryOpToken(":=")::rest => {
@@ -234,6 +262,6 @@ class Parser(tokens:List[Token]) {
   }
   
   // -- Parse the list of tokens
-  def parse():ProgramNode = stmt()
+  def parse() = stmt()
   
 }

@@ -33,7 +33,7 @@ class ReductAbstractRunner {
   } 
   
   // -- Perform an abstract run over the given program node
-  def run(node:ProgramNode, queue:String = "", as:Int = -1):Reduct = {
+  def run(node:ProgramNode with Reduct, queue:String = "", as:Int = -1):Reduct = {
     val name = Reduct.prettyPrinter(node) + queue
     val hash = scala.math.abs(name.hashCode)
     node match {
@@ -44,15 +44,18 @@ class ReductAbstractRunner {
         reduct.hash = hash
         reduct.strid = name
         reduct.atom = as
+        reduct.codeLine = node.codeLine
+        
         reduct
       }
       case WhileNode(cond, body) => { 
         val newBody = run(body, name, as)
         var reduct  = new WhileNode(cond, newBody) with Reduct
-        // reduct.node = reduct
+        
         reduct.hash = hash
         reduct.strid = name
         reduct.atom = as
+        reduct.codeLine = node.codeLine
         
         reduct
       }
@@ -65,6 +68,7 @@ class ReductAbstractRunner {
         reduct.hash = hash
         reduct.strid = name
         reduct.atom = as
+        reduct.codeLine = node.codeLine
         
         reduct
       }
@@ -75,6 +79,8 @@ class ReductAbstractRunner {
         reduct.strid = name
         reduct.hash = hash
         reduct.atom = as
+        reduct.codeLine = node.codeLine
+        
         reduct
       }
       
@@ -88,6 +94,8 @@ class ReductAbstractRunner {
         reduct.strid = name
         reduct.hash = hash
         reduct.atom = atomicId
+        reduct.codeLine = node.codeLine
+        
         reduct
       }
       
@@ -96,6 +104,31 @@ class ReductAbstractRunner {
         reduct.hash = hash
         reduct.strid = name
         reduct.atom = as 
+        reduct.codeLine = node.codeLine
+        
+        if (locks.contains(v.name)) {
+          println ("[" + node.codeLine + "] >> Cannot use lock " + v.name + "as a variable")
+        } else {
+          variables += v.name
+        }
+        
+        reduct
+      }
+      
+      case LockNode(v, b) => {
+        val reduct = new LockNode(v, b) with Reduct
+        
+        if (variables.contains(v.name)) {
+          println ("[" + node.codeLine + "] >> Cannot use variable " + v.name + "as a lock")
+        } else {
+          locks += v.name
+        }
+        
+        reduct.hash = hash
+        reduct.strid = name
+        reduct.atom = as 
+        reduct.codeLine = node.codeLine
+        
         reduct
       }
       
@@ -109,6 +142,9 @@ class ReductAbstractRunner {
     }
   }
   
+  
+  private var variables:Set[String] = Set()
+  private var locks:Set[String] = Set()
   private var nextAtomic = 0
   private def getNextAtomicSection = { val n = nextAtomic; nextAtomic += 1; n }
 }
@@ -162,6 +198,9 @@ object Reduct {
     // -- Skip 
     case SkipNode() => "skip"
     
+    // -- Lock
+    case LockNode(v, b) => (if (b) "acquire " else "release ") + v.name
+      
     // -- Variable 
     case VarNode(name) => name
     

@@ -21,7 +21,7 @@ import it.unipd.math.atomic.Scanner
 import it.unipd.math.atomic.ParseTreeBuilder
 
 object ParserTest extends App {
-  val files = List("huge_example.atom", "race.atom", "dining.atom")
+  val files = List("locks.atom", "race.atom", "dining.atom")
   for (file <- files) {
   	val parseTreeBuilder = new ParseTreeBuilder("samples/" + file)
   	val root = parseTreeBuilder.getTree
