@@ -16,8 +16,8 @@
 -->
 <project name="Cpnunf-ModelChecking" default="dist" basedir=".">
     
-    <property name="srcDir"   location="src"  />
-    <property name="buildDir" location="bin"  />
+    <property name="src_dir"   location="src/it/unipd/math"  />
+    <property name="build_dir" location="bin"  />
     <property name="dist"     location="dist" />
     
     <!-- 
@@ -25,12 +25,12 @@
     -->
     <target name="compile">
         <apply executable="scalac" parallel="true">
-            <arg value="-verbose" /> 
+            <arg value="-verbose" />
             <arg value="-d" /> 
-            <arg value="./bin"/>
+            <arg value="${build_dir}"/>
             <srcfile />
-            <fileset  dir="./src/it/unipd/math/atomic" includes="*.scala" />
-            <fileset  dir="./src/it/unipd/math/cpnunf" includes="*.scala" />
+            <fileset  dir="${src_dir}/atomic" includes="*.scala" />
+            <fileset  dir="${src_dir}/cpnunf" includes="*.scala" />
         </apply>
     </target>
 
@@ -40,15 +40,15 @@
     -->
     <target name="dist" depends="compile">
         <mkdir dir="${dist}" />
-        <jar jarfile="${dist}/model-check.jar" basedir="${buildDir}" manifest="Manifest.mf"/>
+        <mkdir dir="${build_dir}" />
+        <jar jarfile="${dist}/model-check.jar" basedir="${build_dir}" manifest="Manifest.mf"/>
     </target>
-        
     
     <!--
      - Clean target
     -->
     <target name="clean">
         <delete dir="${dist}"        />
-        <delete dir="${buildDir}/it" />
+        <delete dir="${build_dir}/it" />
     </target>
 </project>

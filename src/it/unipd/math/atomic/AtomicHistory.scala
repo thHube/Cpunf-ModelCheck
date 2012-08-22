@@ -67,7 +67,7 @@ class SigmaFunction {
         writeContinue += item
         
         AtomicHistory.totalPsi += item
-        AtomicHistory.breakCouples ::= (AtomicHistory.atomicLineMap(as), codeLine) 
+        AtomicHistory.breakCouples += ((AtomicHistory.atomicLineMap(item), codeLine)) 
       }
     }
     // println("Updated pre condition #4 for atomic => " + as)
@@ -80,7 +80,7 @@ class SigmaFunction {
         writeContinue += item
         
         AtomicHistory.totalPsi += item
-        AtomicHistory.breakCouples ::= (AtomicHistory.atomicLineMap(as), codeLine)
+        AtomicHistory.breakCouples += ((AtomicHistory.atomicLineMap(item), codeLine))
       }
     }
     // println("Updated context condition #4 for atomic => " + as)
@@ -123,7 +123,7 @@ class AtomicHistory(var evt:Event, override val consumed:Set[EnrichedCondition],
           println("Atomic section #" + as + " is broken")
           psi += as
           AtomicHistory.totalPsi += as
-          AtomicHistory.breakCouples ::= (AtomicHistory.atomicLineMap(as), codeLine)  
+          AtomicHistory.breakCouples += ((AtomicHistory.atomicLineMap(as), codeLine))  
         }
       }
       case None => 
@@ -319,7 +319,7 @@ object AtomicHistory {
   // private val sigma:Map[Condition, SigmaFunction] = Map()
   val totalPsi :BitSet = BitSet()
   
-  var breakCouples:List[(Int, Int)] = List()
+  var breakCouples:Set[(Int, Int)] = Set()
   var runtimeAtomic:Map[Event, Int] = Map()
   var atomicLineMap:Map[Int, Int]   = Map()
   
