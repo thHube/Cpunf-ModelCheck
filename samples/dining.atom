@@ -3,24 +3,32 @@
 # author: Alberto Franco
 # ------------------------------------------------------------------------------
 {
-	x := 0;
-	y := 0;
-	
-	# -- Philosofer one
-	asynch
-		while (1) do 
-			atomic {
-				x := x + 1;
-				y := y + 1; 
-			};
-	
-	# -- Philosofer two
-	asynch 
-		while (1) do 
-			atomic {
-				x := 0;
-				y := 0;
-			};
-	
-	
+    MAX_ITERATIONS := 1000;
+    
+    plato := 0; 
+    hegel := 0;
+     
+    asynch while (plato < MAX_ITERATIONS) do 
+    {
+        acquire left;
+        acquire right;
+        
+        # Plato is eating 
+        plato := plato + 1;
+        
+        release right;
+        release left;
+    };
+    
+    asynch while (hegel < MAX_ITERATIONS) do 
+    {
+        acquire right;
+        acquire left;
+        
+        # Hegel is eating 
+        hegel := hegel + 1;
+        
+        release left;
+        release right;
+    };
 }

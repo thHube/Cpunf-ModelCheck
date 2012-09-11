@@ -21,9 +21,15 @@ import java.io.PrintStream
 import it.unipd.math.cpnunf.DotWriter
 import it.unipd.math.cpnunf.LLWriter
 import it.unipd.math.cpnunf.AspWriter
+import java.io.BufferedReader
+import java.io.InputStreamReader
+
 
 class ModelChecker(filename:String){
   
+  private val MODEL_DEADLOCK = "modelcheck/modelchecking.lp"
+  private val CLINGO = "./clingo"
+    
   val timeBefore:Long = Calendar.getInstance().getTimeInMillis()
   
   val parseTreeBuilder = new ParseTreeBuilder(filename)
@@ -36,11 +42,16 @@ class ModelChecker(filename:String){
     if (check) {
       val unfold = new AtomicUnfolder(net).unfold()
       val timeAfter:Long = Calendar.getInstance().getTimeInMillis()
+      val aspFile = filename + ".asp"
       
       AtomicHistory.printModelCheckingInfos(timeAfter - timeBefore)
-      if (ModelChecker.asp) {
+      if (ModelChecker.asp || ModelChecker.dead) {
         println("Generating asp output...")
-        AspWriter.write(new PrintStream(filename + ".asp"), unfold)
+        AspWriter.write(new PrintStream(aspFile), unfold)
+      }
+      
+      if (ModelChecker.dead) {
+        checkDeadlock(aspFile)
       }
     }
     
@@ -52,7 +63,25 @@ class ModelChecker(filename:String){
       println("Generating ll_net output...")
       LLWriter.write(new PrintStream(filename + ".ll_net"), net, true)
     }
-  }  
+  }
+  
+  // -- Checks for deadlock with clingo  
+  def checkDeadlock(input:String) {
+    val command = new Array[String](3)
+    command(0)  = "bash" 
+    command(1)  = "-c"
+    command(2)  = "cat " + input + " " + MODEL_DEADLOCK + " | " + CLINGO + " -n 0"
+    val process = Runtime.getRuntime().exec(command)
+    
+    // -- Waits for process and prinit output 
+    process.waitFor();
+    val reader = new BufferedReader(new InputStreamReader(process.getInputStream()))
+    var line:String = reader.readLine()
+    while (line != null) {
+      println(line);
+      line = reader.readLine()
+    }
+  }
 }
 
 // -- Model checker main procedure 
@@ -61,6 +90,7 @@ object ModelChecker {
   private var dot   = false
   private var asp   = false
   private var ll    = false
+  private var dead  = false
   private var check = true
   
   // -- Usage print 
@@ -95,6 +125,7 @@ object ModelChecker {
         case "-ll"   => ll  = true
         case "-asp"  => asp = true
         
+        case "-deadlock" => dead = true
         case "-nocheck" => check = false
         
         case _ => toReturn = str
@@ -116,3 +147,5 @@ object ModelChecker {
     
   }
 }
+
+

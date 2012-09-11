@@ -16,6 +16,8 @@
  */
 package it.unipd.math.atomic
 
+class AbstractRunError(msg:String) extends Exception(msg:String)
+
 // -----------------------------------------------------------------------------
 // -- Perform an abstract run on the given program node and augment parse tree
 // -- with its reduct.
@@ -115,18 +117,34 @@ class ReductAbstractRunner {
         reduct
       }
       
+      // -- Mutex locking. 
       case LockNode(v, b) => {
         val reduct = new LockNode(v, b) with Reduct
         
         if (variables.contains(v.name)) {
           println ("[" + node.codeLine + "] >> Cannot use variable " + v.name + "as a lock")
+          throw new AbstractRunError("Unable to continue - Lock mismatch")
         } else {
           locks += v.name
         }
         
-        reduct.hash = hash
+        // -- Retrieve old atomic section if unlock, create new on lock. 
+        // -- Check also if the lock has been unlocked before being locked. 
+        var lockAs = -1
+        if (b) {
+          lockAs = getNextAtomicSection
+          lockSession += (v.name -> lockAs) 
+        } else {
+          if (!lockSession.contains(v.name)) {
+            println("[" + node.codeLine + "] >> Cannot release lock before acquiring it")
+            throw new AbstractRunError("Unable to continue - Unlock before lock")
+          }
+          lockAs = lockSession(v.name)
+        }
+        
+        reduct.hash  = hash
         reduct.strid = name
-        reduct.atom = as 
+        reduct.atom  = lockAs
         reduct.codeLine = node.codeLine
         
         reduct
@@ -145,6 +163,7 @@ class ReductAbstractRunner {
   
   private var variables:Set[String] = Set()
   private var locks:Set[String] = Set()
+  private var lockSession:Map[String, Int] = Map()
   private var nextAtomic = 0
   private def getNextAtomicSection = { val n = nextAtomic; nextAtomic += 1; n }
 }
